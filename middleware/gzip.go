@@ -8,8 +8,8 @@ import (
 )
 
 // GZIP compresses the response using gzip compression.
-func GZIP(next http.Handler) http.Handler {
-	return mux.Handler(func(w http.ResponseWriter, r *http.Request) {
+func GZIP(next mux.Handler) mux.Handler {
+	return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Encoding", "gzip")
 		// Compress the response
 		var gz = gzip.NewWriter(w)

@@ -23,8 +23,8 @@ const (
 //
 // Sites can use this to avoid clickjacking attacks, by ensuring that their content is not embedded into other sites.
 func XFrameOptions(options XFrameOption) mux.Middleware {
-	return func(next http.Handler) http.Handler {
-		return mux.Handler(func(w http.ResponseWriter, r *http.Request) {
+	return func(next mux.Handler) mux.Handler {
+		return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("X-Frame-Options", string(options))
 			next.ServeHTTP(w, r)
 		})

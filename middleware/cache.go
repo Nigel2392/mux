@@ -9,9 +9,9 @@ import (
 
 // Set the cache headers for the response.
 // This will enable caching for the specified amount of seconds.
-func Cache(maxAge int) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return mux.Handler(func(w http.ResponseWriter, r *http.Request) {
+func Cache(maxAge int) func(next mux.Handler) mux.Handler {
+	return func(next mux.Handler) mux.Handler {
+		return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
 			for _, header := range etagHeaders {
 				w.Header().Del(header)
 			}
@@ -32,8 +32,8 @@ var etagHeaders = []string{
 
 // Set the cache headers for the response.
 // This will disable caching.
-func NoCache(next http.Handler) http.Handler {
-	return mux.Handler(func(w http.ResponseWriter, r *http.Request) {
+func NoCache(next mux.Handler) mux.Handler {
+	return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
 		for _, header := range etagHeaders {
 			w.Header().Del(header)
 		}

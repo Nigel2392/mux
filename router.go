@@ -18,7 +18,7 @@ const (
 )
 
 // Middleware which will run before/after the HandleFunc.
-type Middleware func(next http.Handler) http.Handler
+type Middleware func(next Handler) Handler
 
 // The muxer.
 type Mux struct {
@@ -55,7 +55,7 @@ func (r *Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	req = SetVariables(req, variables)
 
-	var handler http.Handler = route
+	var handler Handler = route
 	for i := len(r.middleware) - 1; i >= 0; i-- {
 		handler = r.middleware[i](handler)
 	}

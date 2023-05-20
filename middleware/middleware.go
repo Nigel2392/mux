@@ -8,7 +8,7 @@ import (
 )
 
 // Check if the request.Host is in the allowed hosts list
-func AllowedHosts(allowed_hosts ...string) func(next http.Handler) http.Handler {
+func AllowedHosts(allowed_hosts ...string) func(next mux.Handler) mux.Handler {
 	if len(allowed_hosts) == 0 {
 		panic("AllowedHosts: No hosts provided.")
 	}
@@ -17,13 +17,13 @@ func AllowedHosts(allowed_hosts ...string) func(next http.Handler) http.Handler 
 			panic("AllowedHosts: Empty host not allowed.")
 		} else if host == "*" {
 			// If the host is set to *, allow all hosts
-			return func(next http.Handler) http.Handler {
+			return func(next mux.Handler) mux.Handler {
 				return next
 			}
 		}
 	}
-	return func(next http.Handler) http.Handler {
-		return mux.Handler(func(w http.ResponseWriter, r *http.Request) {
+	return func(next mux.Handler) mux.Handler {
+		return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
 			// Check if ALLOWED_HOSTS is set and if the request host is allowed
 			var allowed = false
 			var requestHost = mux.GetHost(r)

@@ -1,6 +1,11 @@
+//go:build !uncompliant
+// +build !uncompliant
+
 package mux
 
 import "net/http"
+
+type Handler http.Handler
 
 type HandleFunc func(w http.ResponseWriter, req *http.Request)
 
@@ -12,7 +17,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	h.handleFunc(w, req)
 }
 
-func Handler(f HandleFunc) http.Handler {
+func NewHandler(f HandleFunc) Handler {
 	return &handler{
 		handleFunc: f,
 	}
