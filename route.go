@@ -1,6 +1,8 @@
 package mux
 
-import "net/http"
+import (
+	"net/http"
+)
 
 type Route struct {
 	Name       string
@@ -8,6 +10,31 @@ type Route struct {
 	Path       *PathInfo
 	Children   []*Route
 	HandleFunc HandleFunc
+}
+
+// String returns a string representation of the route.
+func (r *Route) String() string {
+	return r.Path.String()
+}
+
+func (r *Route) Find(names []string) (*Route, bool) {
+	return r.find(names, 0)
+}
+
+func (r *Route) find(names []string, index int) (*Route, bool) {
+	if len(names) <= index {
+		return nil, false
+	}
+	if r.Name == names[index] && len(names)-1 == index {
+		return r, true
+	}
+	for _, child := range r.Children {
+		var route, ok = child.find(names, index+1)
+		if ok {
+			return route, ok
+		}
+	}
+	return nil, false
 }
 
 // A function that handles a request.

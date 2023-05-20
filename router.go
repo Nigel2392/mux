@@ -2,6 +2,7 @@ package mux
 
 import (
 	"net/http"
+	"strings"
 )
 
 const (
@@ -28,6 +29,21 @@ type Mux struct {
 
 func New() *Mux {
 	return &Mux{}
+}
+
+func (r *Mux) Use(middleware ...Middleware) {
+	r.middleware = append(r.middleware, middleware...)
+}
+
+func (r *Mux) Find(name string) *Route {
+	var nameparts = strings.Split(name, ":")
+	for _, route := range r.routes {
+		var route, ok = route.Find(nameparts)
+		if ok {
+			return route
+		}
+	}
+	return nil
 }
 
 func (r *Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {

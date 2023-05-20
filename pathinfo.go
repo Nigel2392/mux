@@ -31,6 +31,34 @@ type PathInfo struct {
 	Path   []*PathPart
 }
 
+// String returns a string representation of the path.
+func (p *PathInfo) String() string {
+	var b strings.Builder
+	var totalLen int
+	var delimLen = len(VARIABLE_DELIMS[0]) + len(VARIABLE_DELIMS[1])
+	for _, part := range p.Path {
+		totalLen += len(part.Part) + 1
+		if part.IsVariable {
+			totalLen += delimLen
+		}
+	}
+	b.Grow(totalLen)
+	b.WriteString(URL_DELIM)
+	for i, part := range p.Path {
+		if part.IsVariable {
+			b.WriteString(VARIABLE_DELIMS[0])
+		}
+		b.WriteString(part.Part)
+		if part.IsVariable {
+			b.WriteString(VARIABLE_DELIMS[1])
+		}
+		if i < len(p.Path)-1 {
+			b.WriteString(URL_DELIM)
+		}
+	}
+	return b.String()
+}
+
 // Copies the slice, and append appends the other path to the end of this path.
 //
 // It will panic if the path on which this was called is a glob.
@@ -107,7 +135,7 @@ func NewPathInfo(path string) *PathInfo {
 		Path: make([]*PathPart, 0, len(parts)),
 	}
 	for i, part := range parts {
-		var pathPart = &PathPart{}
+		var pathPart = &PathPart{Part: part}
 
 		// Check if this part is a variable
 		if strings.HasPrefix(part, VARIABLE_DELIMS[0]) &&
@@ -119,8 +147,6 @@ func NewPathInfo(path string) *PathInfo {
 			info.IsGlob = true
 		} else if part == GLOB {
 			panic("Glob must be the last part of the path, this specifies an unknown path length")
-		} else {
-			pathPart.Part = part
 		}
 		info.Path = append(info.Path, pathPart)
 	}

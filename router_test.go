@@ -12,12 +12,12 @@ import (
 var rt = mux.New()
 
 func init() {
-	rt.Handle(mux.GET, "/", index)
-	rt.Handle(mux.GET, "/hello/world/<<name>>/<<age>>/", helloworldnameage)
-	var route = rt.Handle(mux.GET, "/hello/", hello)
-	route = route.Handle(mux.GET, "/world/", helloworld)
-	route = route.Handle(mux.GET, "/<<name>>/", helloworldname)
-	route.Handle(mux.GET, "/<<age>>/*/", helloworldnameageglob)
+	rt.Handle(mux.GET, "/", index, "index")
+	rt.Handle(mux.GET, "/hello/world/<<name>>/<<age>>/", helloworldnameage, "numbered")
+	var route = rt.Handle(mux.GET, "/hello/", hello, "hello")
+	route = route.Handle(mux.GET, "/world/", helloworld, "world")
+	route = route.Handle(mux.GET, "/<<name>>/", helloworldname, "named")
+	route.Handle(mux.GET, "/<<age>>/*/", helloworldnameageglob, "gobbed")
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -99,5 +99,52 @@ func TestRouter(t *testing.T) {
 			return
 		}
 		t.Logf("%s ---> %s", test.path, w.String())
+	}
+}
+
+type findTest struct {
+	name     string
+	expected string // path
+}
+
+var findTests = []findTest{
+	{
+		name:     "index",
+		expected: "/",
+	},
+	{
+		name:     "hello",
+		expected: "/hello",
+	},
+	{
+		name:     "hello:world",
+		expected: "/hello/world",
+	},
+	{
+		name:     "hello:world:named",
+		expected: "/hello/world/<<name>>",
+	},
+	{
+		name:     "numbered",
+		expected: "/hello/world/<<name>>/<<age>>",
+	},
+	{
+		name:     "hello:world:named:gobbed",
+		expected: "/hello/world/<<name>>/<<age>>/*",
+	},
+}
+
+func TestFind(t *testing.T) {
+	for _, test := range findTests {
+		var route = rt.Find(test.name)
+		if route == nil {
+			t.Errorf("Expected to find route %s", test.name)
+			return
+		}
+		if route.Path.String() != test.expected {
+			t.Errorf("Expected %s, got %s", test.expected, route.Path.String())
+			return
+		}
+		t.Logf("%s ---> %s", test.name, route.Path.String())
 	}
 }
