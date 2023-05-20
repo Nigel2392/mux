@@ -146,7 +146,7 @@ func NewPathInfo(path string) *PathInfo {
 		} else if part == GLOB && i == len(parts)-1 {
 			info.IsGlob = true
 		} else if part == GLOB {
-			panic("Glob must be the last part of the path, this specifies an unknown path length")
+			panic("glob must be the last part of the path, using glob specifies an unknown path length")
 		}
 		info.Path = append(info.Path, pathPart)
 	}

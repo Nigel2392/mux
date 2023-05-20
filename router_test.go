@@ -33,17 +33,17 @@ func helloworld(w http.ResponseWriter, r *http.Request) {
 }
 
 func helloworldname(w http.ResponseWriter, r *http.Request) {
-	var v = mux.GetVariables(r)
+	var v = mux.Vars(r)
 	fmt.Fprintf(w, "helloworldname: %s", v.GetAll("name"))
 }
 
 func helloworldnameage(w http.ResponseWriter, r *http.Request) {
-	var v = mux.GetVariables(r)
+	var v = mux.Vars(r)
 	fmt.Fprintf(w, "helloworldnameage: %s, %s", v.GetAll("name"), v.GetAll("age"))
 }
 
 func helloworldnameageglob(w http.ResponseWriter, r *http.Request) {
-	var v = mux.GetVariables(r)
+	var v = mux.Vars(r)
 	fmt.Fprintf(w, "helloworldnameageglob: %s, %s, %s", v.GetAll("name"), v.GetAll("age"), v.GetAll(mux.GLOB))
 }
 

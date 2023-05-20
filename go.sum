@@ -2,3 +2,5 @@ github.com/Nigel2392/router/v3 v3.4.2 h1:8EV0YyydyGKKoMOc/MkpMGwcWBnblyguuh0b3DZ
 github.com/Nigel2392/router/v3 v3.4.2/go.mod h1:+SiVJcyAr9suGJ3GK13ce+cFZH6vuJVfYi/eLVkVmkE=
 github.com/Nigel2392/routevars v1.1.1 h1:jiT3/6pvafnhYTxHPUMO7C7gxmBySn0/cnXPJkUQlpY=
 github.com/Nigel2392/routevars v1.1.1/go.mod h1:NBOLgLWRaSXJraX53Q2fFpvbWKrfY2KsT8K5kz4fuMU=
+github.com/alexedwards/scs/v2 v2.5.1 h1:EhAz3Kb3OSQzD8T+Ub23fKsiuvE0GzbF5Lgn0uTwM3Y=
+github.com/alexedwards/scs/v2 v2.5.1/go.mod h1:ToaROZxyKukJKT/xLcVQAChi5k6+Pn1Gvmdl7h3RRj8=

@@ -14,7 +14,7 @@ func SetVariables(r *http.Request, v Variables) *http.Request {
 	return r.WithContext(context.WithValue(r.Context(), variablesKey, v))
 }
 
-func GetVariables(r *http.Request) Variables {
+func Vars(r *http.Request) Variables {
 	var v = r.Context().Value(variablesKey)
 	if v == nil {
 		return nil
