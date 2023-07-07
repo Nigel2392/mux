@@ -126,6 +126,7 @@ func TestPathInfo(t *testing.T) {
 				}
 			}
 		}
+		t.Log(info.String() + " == " + test.path)
 	}
 }
 

@@ -1,7 +1,11 @@
 package mux
 
 import (
+	"crypto/rand"
+	"math"
+	"math/big"
 	"net/http"
+	"strings"
 )
 
 type Route struct {
@@ -10,6 +14,10 @@ type Route struct {
 	Path       *PathInfo
 	Children   []*Route
 	HandleFunc HandleFunc
+	Parent     *Route
+	ParentMux  *Mux
+
+	identifier int64
 }
 
 // String returns a string representation of the route.
@@ -35,6 +43,28 @@ func (r *Route) find(names []string, index int) (*Route, bool) {
 		}
 	}
 	return nil, false
+}
+
+func (r *Route) RemoveByPath(path string) bool {
+	path = strings.Trim(path, "/")
+	var routePath = strings.Trim(r.Path.String(), "/")
+	if path == routePath && r.Parent != nil {
+		r.Parent.RemoveChild(r)
+		return true
+	} else if path == routePath && r.Parent == nil {
+		r.ParentMux.RemoveRoute(r)
+		return true
+	}
+	for _, child := range r.Children {
+		if child.RemoveByPath(path) {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *Route) RemoveChild(child *Route) {
+	removeRoute(r.Children, child)
 }
 
 // A function that handles a request.
@@ -76,6 +106,9 @@ func (r *Route) Handle(method string, path string, handler HandleFunc, name ...s
 		HandleFunc: handler,
 		Name:       n,
 		Method:     method,
+		Parent:     r,
+		ParentMux:  r.ParentMux,
+		identifier: randInt64(),
 	}
 	r.Children = append(r.Children, route)
 	return route
@@ -111,4 +144,24 @@ func (r *Route) Options(path string, handler HandleFunc, name ...string) *Route 
 
 func (r *Route) Any(path string, handler HandleFunc, name ...string) *Route {
 	return r.Handle(ANY, path, handler, name...)
+}
+
+func randInt64() int64 {
+	var n, _ = rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
+	return n.Int64()
+}
+
+func removeRoute(s []*Route, match *Route) []*Route {
+	for i, r := range s {
+		if r.identifier == match.identifier {
+			if len(s) == 1 {
+				return make([]*Route, 0)
+			} else if i == len(s)-1 {
+				return s[:i]
+			} else {
+				return append(s[:i], s[i+1:]...)
+			}
+		}
+	}
+	return s
 }

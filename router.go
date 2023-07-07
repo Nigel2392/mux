@@ -35,6 +35,16 @@ func (r *Mux) Use(middleware ...Middleware) {
 	r.middleware = append(r.middleware, middleware...)
 }
 
+func (r *Mux) RemoveByPath(path string) {
+	for _, route := range r.routes {
+		route.RemoveByPath(path)
+	}
+}
+
+func (r *Mux) RemoveRoute(route *Route) {
+	r.routes = removeRoute(r.routes, route)
+}
+
 func (r *Mux) Find(name string) *Route {
 	var nameparts = strings.Split(name, ":")
 	for _, route := range r.routes {
@@ -91,6 +101,8 @@ func (r *Mux) Handle(method string, path string, handler HandleFunc, name ...str
 		HandleFunc: handler,
 		Name:       n,
 		Method:     method,
+		ParentMux:  r,
+		identifier: randInt64(),
 	}
 	r.routes = append(r.routes, route)
 	return route
