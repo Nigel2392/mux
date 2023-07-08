@@ -45,6 +45,10 @@ func (r *Mux) RemoveRoute(route *Route) {
 	r.routes = removeRoute(r.routes, route)
 }
 
+func (r *Mux) ResetRoutes() {
+	r.routes = make([]*Route, 0)
+}
+
 func (r *Mux) Find(name string) *Route {
 	var nameparts = strings.Split(name, ":")
 	for _, route := range r.routes {

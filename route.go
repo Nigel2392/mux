@@ -20,6 +20,10 @@ type Route struct {
 	identifier int64
 }
 
+func (r *Route) ID() int64 {
+	return r.identifier
+}
+
 // String returns a string representation of the route.
 func (r *Route) String() string {
 	return r.Path.String()
