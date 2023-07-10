@@ -50,7 +50,7 @@ func init() {
 			}
 			var path = args[0].String()
 			var handler = args[1]
-			m.Handle(ANY, path, func(v Variables) {
+			m.Handle(path, func(v Variables) {
 				var varsObject = global.Get("Object").New()
 				for k, value := range v {
 					varsObject.Set(k, sliceToJSArray(value))
@@ -216,7 +216,7 @@ func (r *Mux) jsChangePage(this js.Value, args []js.Value) interface{} {
 }
 
 func (r *Mux) HandlePath(path string) {
-	var route, variables = r.Match(ANY, path)
+	var route, variables = r.Match(path)
 	if route == nil {
 		r.NotFound(map[string][]string{"path": {path}})
 		return
@@ -248,4 +248,32 @@ func (r *Mux) NotFound(v Variables) {
 	}
 
 	fmt.Printf("404: %s\n", v.Get("path"))
+}
+
+func (r *Mux) Match(path string) (*Route, Variables) {
+	var parts = SplitPath(path)
+	for _, route := range r.routes {
+		var rt, matched, variables = route.Match(ANY, parts)
+		if matched {
+			return rt, variables
+		}
+	}
+	return nil, nil
+}
+
+func (r *Mux) Handle(path string, handler HandleFunc, name ...string) *Route {
+	var n string
+	if len(name) > 0 {
+		n = name[0]
+	}
+	var route = &Route{
+		Path:       NewPathInfo(path),
+		HandleFunc: handler,
+		Name:       n,
+		Method:     ANY,
+		ParentMux:  r,
+		identifier: randInt64(),
+	}
+	r.routes = append(r.routes, route)
+	return route
 }
