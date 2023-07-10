@@ -216,10 +216,28 @@ func (r *Mux) jsChangePage(this js.Value, args []js.Value) interface{} {
 }
 
 func (r *Mux) HandlePath(path string) {
+	var url, err = url.Parse(path)
+	if err != nil {
+		goto execPath
+	}
+	path = url.Path
+
+execPath:
 	var route, variables = r.Match(path)
 	if route == nil {
 		r.NotFound(map[string][]string{"path": {path}})
 		return
+	}
+
+	for k, v := range url.Query() {
+		if len(v) == 0 {
+			continue
+		}
+		if values, ok := variables[k]; ok {
+			variables["queryparam_"+k] = append(values, v...)
+		} else {
+			variables["queryparam_"+k] = v
+		}
 	}
 
 	r.currentPath = path
