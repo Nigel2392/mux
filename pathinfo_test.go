@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	"github.com/Nigel2392/mux"
-	router_v3 "github.com/Nigel2392/router/v3"
-	"github.com/Nigel2392/router/v3/request"
 )
 
 type pathInfoTest struct {
@@ -241,58 +239,59 @@ func BenchmarkMatch(b *testing.B) {
 	}
 }
 
-type routevarsBenchmark struct {
-	router          *router_v3.Router
-	routes          []string
-	routes_to_match []string
-}
-
-var routevarsBenchmarks = []routevarsBenchmark{
-	{
-		router: router_v3.NewRouter(true),
-		routes: []string{"/",
-			"/hello",
-			"/hello/world",
-			"/hello/world/<<name:string>>",
-			"/hello/world/<<name:string>>/<<age:int>>",
-			"/hello/world/<<name:string>>/<<age:int>>/<<any>>",
-			"/this/is/a/very/long/route/<<name:string>>/<<age:int>>/this/is/a/very/long/route/<<name:string>>/<<age:int>>/this/is/a/very/long/route/<<name:string>>/<<age:int>>/this/is/a/very/long/route/<<name:string>>/<<age:int>>",
-		},
-		routes_to_match: []string{
-			"/",
-			"/hello",
-			"/hello/world",
-			"/hello/world/john",
-			"/hello/world/john/20",
-			"/hello/world/john/20/hello/world",
-			"/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20",
-		},
-	},
-}
-
-func BenchmarkRouteVars(b *testing.B) {
-	for _, test := range routevarsBenchmarks {
-		b.Run("RouteVars", routeVars(test))
-	}
-}
-
-func routeVars(test routevarsBenchmark) func(b *testing.B) {
-	return func(b *testing.B) {
-		b.StopTimer()
-		for _, route := range test.routes {
-			test.router.Get(route, router_v3.HandleFunc(func(r *request.Request) {}))
-		}
-		for _, route := range test.routes_to_match {
-			b.StartTimer()
-			b.Run("match-"+strconv.Itoa(len(strings.Split(route, mux.URL_DELIM))), func(b *testing.B) {
-				for i := 0; i < b.N; i++ {
-					var match, _, _ = test.router.Match(router_v3.GET, route)
-					if !match {
-						b.Errorf("Expected %v, got %v: %s", true, match, route)
-					}
-				}
-			})
-			b.StopTimer()
-		}
-	}
-}
+//	type routevarsBenchmark struct {
+//		router          *router_v3.Router
+//		routes          []string
+//		routes_to_match []string
+//	}
+//
+//	var routevarsBenchmarks = []routevarsBenchmark{
+//		{
+//			router: router_v3.NewRouter(true),
+//			routes: []string{"/",
+//				"/hello",
+//				"/hello/world",
+//				"/hello/world/<<name:string>>",
+//				"/hello/world/<<name:string>>/<<age:int>>",
+//				"/hello/world/<<name:string>>/<<age:int>>/<<any>>",
+//				"/this/is/a/very/long/route/<<name:string>>/<<age:int>>/this/is/a/very/long/route/<<name:string>>/<<age:int>>/this/is/a/very/long/route/<<name:string>>/<<age:int>>/this/is/a/very/long/route/<<name:string>>/<<age:int>>",
+//			},
+//			routes_to_match: []string{
+//				"/",
+//				"/hello",
+//				"/hello/world",
+//				"/hello/world/john",
+//				"/hello/world/john/20",
+//				"/hello/world/john/20/hello/world",
+//				"/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20",
+//			},
+//		},
+//	}
+//
+//	func BenchmarkRouteVars(b *testing.B) {
+//		for _, test := range routevarsBenchmarks {
+//			b.Run("RouteVars", routeVars(test))
+//		}
+//	}
+//
+//	func routeVars(test routevarsBenchmark) func(b *testing.B) {
+//		return func(b *testing.B) {
+//			b.StopTimer()
+//			for _, route := range test.routes {
+//				test.router.Get(route, router_v3.HandleFunc(func(r *request.Request) {}))
+//			}
+//			for _, route := range test.routes_to_match {
+//				b.StartTimer()
+//				b.Run("match-"+strconv.Itoa(len(strings.Split(route, mux.URL_DELIM))), func(b *testing.B) {
+//					for i := 0; i < b.N; i++ {
+//						var match, _, _ = test.router.Match(router_v3.GET, route)
+//						if !match {
+//							b.Errorf("Expected %v, got %v: %s", true, match, route)
+//						}
+//					}
+//				})
+//				b.StopTimer()
+//			}
+//		}
+//	}
+//

@@ -3,7 +3,7 @@
 ##### Supports
 
 * Variables in the path
-* The stdlib http.Handler interface
+* The stdlib http.Handler interface (Also webassembly!)
 * stdlib http.ResponseWriter/http.Request functions
 * Route namespaces
 

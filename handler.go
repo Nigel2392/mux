@@ -1,5 +1,5 @@
-//go:build !uncompliant
-// +build !uncompliant
+//go:build !js && !wasm
+// +build !js,!wasm
 
 package mux
 

@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"math"
 	"math/big"
-	"net/http"
 	"strings"
 )
 
@@ -69,11 +68,6 @@ func (r *Route) RemoveByPath(path string) bool {
 
 func (r *Route) RemoveChild(child *Route) {
 	removeRoute(r.Children, child)
-}
-
-// A function that handles a request.
-func (r *Route) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	r.HandleFunc(w, req)
 }
 
 // Helper function to check if the route matches the method and path.
