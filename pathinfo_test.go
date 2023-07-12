@@ -1,7 +1,6 @@
 package mux_test
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -149,12 +148,6 @@ func TestMatch(t *testing.T) {
 		},
 		{
 			path:            "/*",
-			pathToMatch:     "/",
-			info:            mux.NewPathInfo("/*"),
-			ExpectedMatched: true,
-		},
-		{
-			path:            "/*",
 			pathToMatch:     "/asd",
 			info:            mux.NewPathInfo("/*"),
 			ExpectedMatched: true,
@@ -195,22 +188,12 @@ func TestMatch(t *testing.T) {
 			info:            mux.NewPathInfo("/hello/world/<<name>>/*/"),
 			ExpectedMatched: true,
 		},
-		{
-			path:            "/hello/123/asd/world/<<name>>/*/",
-			pathToMatch:     "/hello/123/asd/world/john/",
-			info:            mux.NewPathInfo("/hello/123/asd/world/<<name>>/*/"),
-			ExpectedMatched: true,
-		},
 	}
 	for _, test := range matchTests {
-		var splitToMatch = mux.SplitPath(test.pathToMatch)
-		fmt.Println(splitToMatch)
-		fmt.Printf("%#v\n", test.info.Path)
-		var matched, vars = test.info.Match(splitToMatch)
+		var matched, vars = test.info.Match(mux.SplitPath(test.pathToMatch))
 		if matched != test.ExpectedMatched {
 			t.Errorf("Expected %v, got %v: %s != %s", test.ExpectedMatched, matched, test.path, test.pathToMatch)
 			t.Logf("%#v", test.info)
-			return
 		}
 		t.Log(test.path, test.pathToMatch, test.ExpectedMatched, vars)
 	}

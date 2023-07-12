@@ -22,7 +22,12 @@ func init() {
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "index")
+	var vars = mux.Vars(r)
+	if len(vars) > 0 {
+		fmt.Fprintf(w, "index: %v", vars[mux.GLOB])
+	} else {
+		fmt.Fprintf(w, "index")
+	}
 }
 
 func hello(w http.ResponseWriter, r *http.Request) {
@@ -72,7 +77,7 @@ func TestRouter(t *testing.T) {
 		},
 		{
 			path:     "/catchme",
-			expected: "index",
+			expected: "index: [catchme]",
 		},
 		{
 			path:     "/hello/",
