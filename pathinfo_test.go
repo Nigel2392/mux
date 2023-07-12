@@ -1,6 +1,7 @@
 package mux_test
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -141,6 +142,24 @@ type matchTest struct {
 func TestMatch(t *testing.T) {
 	var matchTests = []matchTest{
 		{
+			path:            "/",
+			pathToMatch:     "/",
+			info:            mux.NewPathInfo("/"),
+			ExpectedMatched: true,
+		},
+		{
+			path:            "/*",
+			pathToMatch:     "/",
+			info:            mux.NewPathInfo("/*"),
+			ExpectedMatched: true,
+		},
+		{
+			path:            "/*",
+			pathToMatch:     "/asd",
+			info:            mux.NewPathInfo("/*"),
+			ExpectedMatched: true,
+		},
+		{
 			path:            "/hello",
 			pathToMatch:     "/hello",
 			info:            mux.NewPathInfo("/hello"),
@@ -176,12 +195,22 @@ func TestMatch(t *testing.T) {
 			info:            mux.NewPathInfo("/hello/world/<<name>>/*/"),
 			ExpectedMatched: true,
 		},
+		{
+			path:            "/hello/123/asd/world/<<name>>/*/",
+			pathToMatch:     "/hello/123/asd/world/john/",
+			info:            mux.NewPathInfo("/hello/123/asd/world/<<name>>/*/"),
+			ExpectedMatched: true,
+		},
 	}
 	for _, test := range matchTests {
-		var matched, vars = test.info.Match(mux.SplitPath(test.pathToMatch))
+		var splitToMatch = mux.SplitPath(test.pathToMatch)
+		fmt.Println(splitToMatch)
+		fmt.Printf("%#v\n", test.info.Path)
+		var matched, vars = test.info.Match(splitToMatch)
 		if matched != test.ExpectedMatched {
 			t.Errorf("Expected %v, got %v: %s != %s", test.ExpectedMatched, matched, test.path, test.pathToMatch)
 			t.Logf("%#v", test.info)
+			return
 		}
 		t.Log(test.path, test.pathToMatch, test.ExpectedMatched, vars)
 	}
@@ -199,6 +228,8 @@ var testBenchMarks = []testBenchMark{
 		router: mux.New(),
 		routes_to_be_registered: []string{
 			"/",
+			"/*",
+			"/*",
 			"/hello/",
 			"/hello/world/",
 			"/hello/world/<<name>>/",
@@ -208,6 +239,8 @@ var testBenchMarks = []testBenchMark{
 		},
 		routes_to_be_checked: []string{
 			"/",
+			"/",
+			"/asd",
 			"/hello/",
 			"/hello/world/",
 			"/hello/world/john/",

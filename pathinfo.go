@@ -102,18 +102,27 @@ type PathPart struct {
 // If the path does not match, the variables will be nil.
 func (p *PathInfo) Match(path []string) (bool, Variables) {
 	// Glob only allows for more parts, not less
-	if len(path) < len(p.Path) || (len(path) != len(p.Path) && !p.IsGlob) {
+	if len(path) != len(p.Path) && !p.IsGlob {
 		return false, nil
 	}
 	var variables = make(Variables)
 	for i, part := range p.Path {
-		if part.IsVariable {
+		switch {
+		case i >= len(path) && i == len(p.Path)-1:
+			if !p.IsGlob {
+				return false, nil
+			}
+			variables[GLOB] = append(variables[GLOB], path[i:]...)
+			return true, variables
+		case i >= len(path):
+			return false, nil
+		case part.IsVariable:
 			var pathPart = path[i]
 			if pathPart == "" {
 				return false, nil
 			}
 			variables[part.Part] = append(variables[part.Part], pathPart)
-		} else if part.Part != path[i] {
+		case part.Part != path[i]:
 			if !p.IsGlob {
 				return false, nil
 			}

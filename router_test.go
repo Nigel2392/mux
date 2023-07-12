@@ -17,7 +17,8 @@ func init() {
 	var route = rt.Handle(mux.GET, "/hello/", hello, "hello")
 	route = route.Handle(mux.GET, "/world/", helloworld, "world")
 	route = route.Handle(mux.GET, "/<<name>>/", helloworldname, "named")
-	route.Handle(mux.GET, "/<<age>>/*/", helloworldnameageglob, "gobbed")
+	route.Handle(mux.GET, "/<<age>>/asd/*/", helloworldnameageglob, "gobbed")
+	rt.Handle(mux.GET, "/*", index, "catchall")
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +71,10 @@ func TestRouter(t *testing.T) {
 			expected: "index",
 		},
 		{
+			path:     "/catchme",
+			expected: "index",
+		},
+		{
 			path:     "/hello/",
 			expected: "hello",
 		},
@@ -86,7 +91,7 @@ func TestRouter(t *testing.T) {
 			expected: "helloworldnameage: [john], [23]",
 		},
 		{
-			path:     "/hello/world/john/23/this/is/a/glob/",
+			path:     "/hello/world/john/23/asd/this/is/a/glob/",
 			expected: "helloworldnameageglob: [john], [23], [this is a glob]",
 		},
 	}
@@ -130,7 +135,7 @@ var findTests = []findTest{
 	},
 	{
 		name:     "hello:world:named:gobbed",
-		expected: "/hello/world/<<name>>/<<age>>/*",
+		expected: "/hello/world/<<name>>/<<age>>/asd/*",
 	},
 }
 
