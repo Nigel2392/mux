@@ -281,6 +281,9 @@ func (r *Mux) Match(path string) (*Route, Variables) {
 	return nil, nil
 }
 
+// Handle adds a handler to the route.
+//
+// It returns the route that was added so that it can be used to add children.
 func (r *Mux) Handle(path string, handler HandleFunc, name ...string) *Route {
 	var n string
 	if len(name) > 0 {
@@ -295,6 +298,11 @@ func (r *Mux) Handle(path string, handler HandleFunc, name ...string) *Route {
 		identifier: randInt64(),
 	}
 	r.routes = append(r.routes, route)
+
+	if r.running {
+		r.compile()
+	}
+
 	return route
 }
 
