@@ -92,6 +92,7 @@ func (p *PathInfo) CopyAppend(other *PathInfo) *PathInfo {
 type PathPart struct {
 	Part       string
 	IsVariable bool
+	IsGlob     bool
 	// Validators []func(string) bool
 }
 
@@ -113,11 +114,10 @@ func (p *PathInfo) Match(path []string) (bool, Variables) {
 				return false, nil
 			}
 			variables[part.Part] = append(variables[part.Part], pathPart)
-		} else if part.Part != path[i] {
-			if !p.IsGlob {
-				return false, nil
-			}
+		} else if part.Part != path[i] && part.IsGlob {
 			variables[GLOB] = append(variables[GLOB], path[i:]...)
+		} else if part.Part != path[i] {
+			return false, nil
 		}
 	}
 	return true, variables
@@ -145,6 +145,7 @@ func NewPathInfo(path string) *PathInfo {
 			pathPart.Part = part[len(VARIABLE_DELIMS[0]) : len(part)-len(VARIABLE_DELIMS[1])]
 		} else if part == GLOB && i == len(parts)-1 {
 			info.IsGlob = true
+			pathPart.IsGlob = true
 		} else if part == GLOB {
 			panic("glob must be the last part of the path, using glob specifies an unknown path length")
 		}
