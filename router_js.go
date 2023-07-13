@@ -251,6 +251,8 @@ execPath:
 		variables["path"] = []string{path}
 	}
 
+	pushState(js.Null(), path)
+
 	var handler Handler = route
 	for i := len(r.middleware) - 1; i >= 0; i-- {
 		handler = r.middleware[i](handler)
@@ -294,4 +296,8 @@ func (r *Mux) Handle(path string, handler HandleFunc, name ...string) *Route {
 	}
 	r.routes = append(r.routes, route)
 	return route
+}
+
+func pushState(state js.Value, path string) {
+	global.Get("history").Call("pushState", state, nil, path)
 }
