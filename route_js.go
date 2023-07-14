@@ -11,7 +11,7 @@ func (r *Route) ServeHTTP(v Variables) {
 // Handle adds a handler to the route.
 //
 // It returns the route that was added so that it can be used to add children.
-func (r *Route) Handle(method string, path string, handler HandleFunc, name ...string) *Route {
+func (r *Route) Handle(path string, handler HandleFunc, name ...string) *Route {
 	var n string
 	if len(name) > 0 {
 		n = name[0]
@@ -22,7 +22,7 @@ func (r *Route) Handle(method string, path string, handler HandleFunc, name ...s
 		),
 		HandleFunc: handler,
 		Name:       n,
-		Method:     method,
+		Method:     ANY,
 		Parent:     r,
 		ParentMux:  r.ParentMux,
 		identifier: randInt64(),
