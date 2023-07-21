@@ -184,8 +184,8 @@ func (r *Mux) changePage(this js.Value, args []js.Value) any {
 	}
 
 	if strings.HasPrefix(path, RT_PREFIX_EXTERNAL) {
-		url.Path = strings.TrimPrefix(path, RT_PREFIX_EXTERNAL)
-		global.Get("window").Call("open", url.String(), "_blank")
+		path = strings.TrimPrefix(path, RT_PREFIX_EXTERNAL)
+		global.Get("window").Call("open", path, "_blank")
 		return nil
 	}
 
