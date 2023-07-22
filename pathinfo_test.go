@@ -238,7 +238,7 @@ func BenchmarkMatch(b *testing.B) {
 	b.StopTimer()
 	for _, test := range testBenchMarks {
 		for _, route := range test.routes_to_be_registered {
-			test.router.Handle(mux.GET, route, func(responsewriter http.ResponseWriter, request *http.Request) {})
+			test.router.Handle(mux.GET, route, mux.NewHandler(func(responsewriter http.ResponseWriter, request *http.Request) {}))
 		}
 		for _, route := range test.routes_to_be_checked {
 			b.StartTimer()

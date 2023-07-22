@@ -50,13 +50,13 @@ func init() {
 			}
 			var path = args[0].String()
 			var handler = args[1]
-			m.Handle(path, func(v Variables) {
+			m.Handle(path, NewHandler(func(v Variables) {
 				var varsObject = global.Get("Object").New()
 				for k, value := range v {
 					varsObject.Set(k, sliceToJSArray(value))
 				}
 				handler.Invoke(varsObject)
-			})
+			}))
 			return nil
 		}))
 		return muxObject
@@ -77,7 +77,7 @@ const RT_PREFIX_EXTERNAL = "external://"
 type Mux struct {
 	routes          []*Route
 	middleware      []Middleware
-	NotFoundHandler HandleFunc
+	NotFoundHandler Handler
 
 	running              bool
 	routerChangePageFunc js.Func
@@ -263,7 +263,7 @@ execPath:
 
 func (r *Mux) NotFound(v Variables) {
 	if r.NotFoundHandler != nil {
-		r.NotFoundHandler(v)
+		r.NotFoundHandler.ServeHTTP(v)
 		return
 	}
 
@@ -284,14 +284,14 @@ func (r *Mux) Match(path string) (*Route, Variables) {
 // Handle adds a handler to the route.
 //
 // It returns the route that was added so that it can be used to add children.
-func (r *Mux) Handle(path string, handler HandleFunc, name ...string) *Route {
+func (r *Mux) Handle(path string, handler Handler, name ...string) *Route {
 	var n string
 	if len(name) > 0 {
 		n = name[0]
 	}
 	var route = &Route{
 		Path:       NewPathInfo(path),
-		HandleFunc: handler,
+		Handler:    handler,
 		Name:       n,
 		Method:     ANY,
 		ParentMux:  r,

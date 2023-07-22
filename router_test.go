@@ -12,13 +12,13 @@ import (
 var rt = mux.New()
 
 func init() {
-	rt.Handle(mux.GET, "/", index, "index")
-	rt.Handle(mux.GET, "/hello/world/<<name>>/<<age>>/", helloworldnameage, "numbered")
-	var route = rt.Handle(mux.GET, "/hello/", hello, "hello")
-	route = route.Handle(mux.GET, "/world/", helloworld, "world")
-	route = route.Handle(mux.GET, "/<<name>>/", helloworldname, "named")
-	route.Handle(mux.GET, "/<<age>>/asd/*/", helloworldnameageglob, "gobbed")
-	rt.Handle(mux.GET, "/*", index, "catchall")
+	rt.Handle(mux.GET, "/", mux.NewHandler(index), "index")
+	rt.Handle(mux.GET, "/hello/world/<<name>>/<<age>>/", mux.NewHandler(helloworldnameage), "numbered")
+	var route = rt.Handle(mux.GET, "/hello/", mux.NewHandler(hello), "hello")
+	route = route.Handle(mux.GET, "/world/", mux.NewHandler(helloworld), "world")
+	route = route.Handle(mux.GET, "/<<name>>/", mux.NewHandler(helloworldname), "named")
+	route.Handle(mux.GET, "/<<age>>/asd/*/", mux.NewHandler(helloworldnameageglob), "gobbed")
+	rt.Handle(mux.GET, "/*", mux.NewHandler(index), "catchall")
 }
 
 func index(w http.ResponseWriter, r *http.Request) {

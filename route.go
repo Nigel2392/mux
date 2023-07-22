@@ -8,13 +8,13 @@ import (
 )
 
 type Route struct {
-	Name       string
-	Method     string
-	Path       *PathInfo
-	Children   []*Route
-	HandleFunc HandleFunc
-	Parent     *Route
-	ParentMux  *Mux
+	Name      string
+	Method    string
+	Path      *PathInfo
+	Children  []*Route
+	Handler   Handler
+	Parent    *Route
+	ParentMux *Mux
 
 	identifier int64
 }
@@ -72,7 +72,7 @@ func (r *Route) RemoveChild(child *Route) {
 
 // Helper function to check if the route matches the method and path.
 func routeMatched(matched bool, method string, route *Route) bool {
-	return matched && (route.Method == ANY || route.Method == method || method == ANY) && route.HandleFunc != nil
+	return matched && (route.Method == ANY || route.Method == method || method == ANY) && route.Handler != nil
 }
 
 func (r *Route) Match(method string, path []string) (*Route, bool, Variables) {

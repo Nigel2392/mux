@@ -5,13 +5,13 @@ package mux
 
 // A function that handles a request.
 func (r *Route) ServeHTTP(v Variables) {
-	r.HandleFunc(v)
+	r.Handler.ServeHTTP(v)
 }
 
 // Handle adds a handler to the route.
 //
 // It returns the route that was added so that it can be used to add children.
-func (r *Route) Handle(path string, handler HandleFunc, name ...string) *Route {
+func (r *Route) Handle(path string, handler Handler, name ...string) *Route {
 	var n string
 	if len(name) > 0 {
 		n = name[0]
@@ -20,7 +20,7 @@ func (r *Route) Handle(path string, handler HandleFunc, name ...string) *Route {
 		Path: r.Path.CopyAppend(
 			NewPathInfo(path),
 		),
-		HandleFunc: handler,
+		Handler:    handler,
 		Name:       n,
 		Method:     ANY,
 		Parent:     r,

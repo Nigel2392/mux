@@ -7,8 +7,6 @@ import (
 	"strconv"
 )
 
-var variablesKey = "mux.Variables"
-
 type Variables map[string][]string
 
 func (v Variables) Get(key string) string {

@@ -47,14 +47,14 @@ func (r *Mux) Match(method string, path string) (*Route, Variables) {
 	return nil, nil
 }
 
-func (r *Mux) Handle(method string, path string, handler HandleFunc, name ...string) *Route {
+func (r *Mux) Handle(method string, path string, handler Handler, name ...string) *Route {
 	var n string
 	if len(name) > 0 {
 		n = name[0]
 	}
 	var route = &Route{
 		Path:       NewPathInfo(path),
-		HandleFunc: handler,
+		Handler:    handler,
 		Name:       n,
 		Method:     method,
 		ParentMux:  r,
@@ -64,34 +64,34 @@ func (r *Mux) Handle(method string, path string, handler HandleFunc, name ...str
 	return route
 }
 
-func (r *Mux) Get(path string, handler HandleFunc, name ...string) *Route {
+func (r *Mux) Get(path string, handler Handler, name ...string) *Route {
 	return r.Handle(GET, path, handler, name...)
 }
 
-func (r *Mux) Post(path string, handler HandleFunc, name ...string) *Route {
+func (r *Mux) Post(path string, handler Handler, name ...string) *Route {
 	return r.Handle(POST, path, handler, name...)
 }
 
-func (r *Mux) Put(path string, handler HandleFunc, name ...string) *Route {
+func (r *Mux) Put(path string, handler Handler, name ...string) *Route {
 	return r.Handle(PUT, path, handler, name...)
 }
 
-func (r *Mux) Delete(path string, handler HandleFunc, name ...string) *Route {
+func (r *Mux) Delete(path string, handler Handler, name ...string) *Route {
 	return r.Handle(DELETE, path, handler, name...)
 }
 
-func (r *Mux) Head(path string, handler HandleFunc, name ...string) *Route {
+func (r *Mux) Head(path string, handler Handler, name ...string) *Route {
 	return r.Handle(HEAD, path, handler, name...)
 }
 
-func (r *Mux) Patch(path string, handler HandleFunc, name ...string) *Route {
+func (r *Mux) Patch(path string, handler Handler, name ...string) *Route {
 	return r.Handle(PATCH, path, handler, name...)
 }
 
-func (r *Mux) Options(path string, handler HandleFunc, name ...string) *Route {
+func (r *Mux) Options(path string, handler Handler, name ...string) *Route {
 	return r.Handle(OPTIONS, path, handler, name...)
 }
 
-func (r *Mux) Any(path string, handler HandleFunc, name ...string) *Route {
+func (r *Mux) Any(path string, handler Handler, name ...string) *Route {
 	return r.Handle(ANY, path, handler, name...)
 }
