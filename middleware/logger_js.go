@@ -1,9 +1,12 @@
+//go:build js && wasm
+// +build js,wasm
+
 package middleware
 
 import (
 	"fmt"
 	"io"
-	"net/http"
+	"os"
 	"time"
 
 	"github.com/Nigel2392/mux"
@@ -12,6 +15,8 @@ import (
 type Logger struct {
 	Output io.Writer
 }
+
+var DefaultLogger = Logger{Output: os.Stdout}
 
 func (l *Logger) Intercept(next mux.Handler) mux.Handler {
 	return mux.NewHandler(func(v mux.Variables) {
