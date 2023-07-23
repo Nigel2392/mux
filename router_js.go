@@ -258,7 +258,7 @@ execPath:
 		handler = r.middleware[i](handler)
 	}
 
-	go route.ServeHTTP(variables)
+	go handler.ServeHTTP(variables)
 }
 
 func (r *Mux) NotFound(v Variables) {
