@@ -14,7 +14,7 @@ type Mux struct {
 
 func (r *Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	var route, variables = r.Match(req.Method, req.URL.Path)
-	if route == nil {
+	if route == nil || route.Handler == nil {
 		r.NotFound(w, req)
 		return
 	}

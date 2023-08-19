@@ -224,7 +224,7 @@ func (r *Mux) HandlePath(path string) {
 
 execPath:
 	var route, variables = r.Match(path)
-	if route == nil {
+	if route == nil || route.Handler == nil {
 		r.NotFound(map[string][]string{"path": {path}})
 		return
 	}
