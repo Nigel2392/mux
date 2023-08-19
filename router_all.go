@@ -22,12 +22,12 @@ func (r *Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	req = SetVariables(req, variables)
 
 	var handler Handler = route
-	for i := len(r.middleware) - 1; i >= 0; i-- {
-		handler = r.middleware[i](handler)
-	}
-
 	for i := len(route.Middleware) - 1; i >= 0; i-- {
 		handler = route.Middleware[i](handler)
+	}
+
+	for i := len(r.middleware) - 1; i >= 0; i-- {
+		handler = r.middleware[i](handler)
 	}
 
 	handler.ServeHTTP(w, req)

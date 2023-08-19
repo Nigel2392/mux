@@ -254,11 +254,11 @@ execPath:
 	pushState(js.Null(), path)
 
 	var handler Handler = route
-	for i := len(r.middleware) - 1; i >= 0; i-- {
-		handler = r.middleware[i](handler)
-	}
 	for i := len(route.Middleware) - 1; i >= 0; i-- {
 		handler = route.Middleware[i](handler)
+	}
+	for i := len(r.middleware) - 1; i >= 0; i-- {
+		handler = r.middleware[i](handler)
 	}
 
 	go handler.ServeHTTP(variables)
