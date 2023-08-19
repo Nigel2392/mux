@@ -25,6 +25,11 @@ func (r *Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	for i := len(r.middleware) - 1; i >= 0; i-- {
 		handler = r.middleware[i](handler)
 	}
+
+	for i := len(route.Middleware) - 1; i >= 0; i-- {
+		handler = route.Middleware[i](handler)
+	}
+
 	handler.ServeHTTP(w, req)
 }
 
@@ -62,6 +67,10 @@ func (r *Mux) Handle(method string, path string, handler Handler, name ...string
 	}
 	r.routes = append(r.routes, route)
 	return route
+}
+
+func (r *Mux) HandleFunc(method string, path string, handler http.HandlerFunc, name ...string) *Route {
+	return r.Handle(method, path, handler, name...)
 }
 
 func (r *Mux) Get(path string, handler Handler, name ...string) *Route {

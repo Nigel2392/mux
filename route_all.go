@@ -42,6 +42,10 @@ func (r *Route) Any(path string, handler Handler, name ...string) *Route {
 	return r.Handle(ANY, path, handler, name...)
 }
 
+func (r *Route) HandleFunc(method string, path string, handler func(w http.ResponseWriter, r *http.Request), name ...string) *Route {
+	return r.Handle(method, path, NewHandler(handler), name...)
+}
+
 // Handle adds a handler to the route.
 //
 // It returns the route that was added so that it can be used to add children.

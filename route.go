@@ -8,19 +8,26 @@ import (
 )
 
 type Route struct {
-	Name      string
-	Method    string
-	Path      *PathInfo
-	Children  []*Route
-	Handler   Handler
-	Parent    *Route
-	ParentMux *Mux
+	Name       string
+	Method     string
+	Middleware []Middleware
+	Path       *PathInfo
+	Children   []*Route
+	Handler    Handler
+	Parent     *Route
+	ParentMux  *Mux
 
 	identifier int64
 }
 
 func (r *Route) ID() int64 {
 	return r.identifier
+}
+
+// Use adds middleware to the route.
+func (r *Route) Use(middleware ...Middleware) *Route {
+	r.Middleware = append(r.Middleware, middleware...)
+	return r
 }
 
 // String returns a string representation of the route.
