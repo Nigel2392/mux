@@ -47,12 +47,13 @@ func (r *Route) HandleFunc(method string, path string, handler func(w http.Respo
 }
 
 func setChildData(child, parent *Route) {
-	if parent != nil {
+	if parent != nil && child.Parent == nil {
 		child.Parent = parent
-		child.ParentMux = parent.ParentMux
 		child.Path = parent.Path.CopyAppend(
 			child.Path,
 		)
+	} else if parent != nil {
+		child.ParentMux = parent.ParentMux
 	}
 	if child.identifier == 0 {
 		child.identifier = randInt64()
