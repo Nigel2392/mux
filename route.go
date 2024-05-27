@@ -45,9 +45,8 @@ func (r *Route) ID() int64 {
 }
 
 // Use adds middleware to the route.
-func (r *Route) Use(middleware ...Middleware) *Route {
+func (r *Route) Use(middleware ...Middleware) {
 	r.Middleware = append(r.Middleware, middleware...)
-	return r
 }
 
 // String returns a string representation of the route.
