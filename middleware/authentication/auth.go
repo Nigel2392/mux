@@ -28,6 +28,7 @@ type User interface {
 
 // Add a user to the request.
 func AddUserMiddleware(f func(*http.Request) User) mux.Middleware {
+
 	return func(next mux.Handler) mux.Handler {
 		return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
 			r = r.WithContext(context.WithValue(r.Context(), context_user_key, f(r)))

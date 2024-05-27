@@ -224,7 +224,7 @@ func (r *Mux) HandlePath(path string) {
 
 execPath:
 	var route, variables = r.Match(path)
-	if route == nil {
+	if route == nil || route.Handler == nil {
 		r.NotFound(map[string][]string{"path": {path}})
 		return
 	}
@@ -254,6 +254,9 @@ execPath:
 	pushState(js.Null(), path)
 
 	var handler Handler = route
+	for i := len(route.Middleware) - 1; i >= 0; i-- {
+		handler = route.Middleware[i](handler)
+	}
 	for i := len(r.middleware) - 1; i >= 0; i-- {
 		handler = r.middleware[i](handler)
 	}
