@@ -46,16 +46,29 @@ func (r *Route) HandleFunc(method string, path string, handler func(w http.Respo
 	return r.Handle(method, path, NewHandler(handler), name...)
 }
 
-func (r *Route) AddRoute(rt *Route) {
-	rt.Parent = r
-	rt.ParentMux = r.ParentMux
-	if rt.identifier == 0 {
-		rt.identifier = randInt64()
+func setChildData(child, parent *Route) {
+	if parent != nil {
+		child.Parent = parent
+		child.ParentMux = parent.ParentMux
+		child.Path = parent.Path.CopyAppend(
+			child.Path,
+		)
+	}
+	if child.identifier == 0 {
+		child.identifier = randInt64()
+	}
+	for _, sub := range child.Children {
+		setChildData(sub, child)
 	}
 
-	rt.Path = r.Path.CopyAppend(
-		rt.Path,
-	)
+}
+
+func (r *Route) AddRoute(rt *Route) {
+	setChildData(rt, r)
+
+	for _, child := range rt.Children {
+		setChildData(child, rt)
+	}
 
 	r.Children = append(r.Children, rt)
 }
@@ -65,11 +78,6 @@ func (r *Route) AddRoute(rt *Route) {
 // It returns the route that was added so that it can be used to add children.
 func (r *Route) Handle(method string, path string, handler Handler, name ...string) *Route {
 	var route = NewRoute(method, path, handler, name...)
-	route.Path = r.Path.CopyAppend(
-		route.Path,
-	)
-	route.Parent = r
-	route.ParentMux = r.ParentMux
-	r.Children = append(r.Children, route)
+	r.AddRoute(route)
 	return route
 }

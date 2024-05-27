@@ -65,6 +65,10 @@ func (r *Mux) AddRoute(rt *Route) {
 		rt.identifier = randInt64()
 	}
 
+	for _, child := range rt.Children {
+		setChildData(child, rt)
+	}
+
 	r.routes = append(r.routes, rt)
 }
 
