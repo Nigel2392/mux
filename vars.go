@@ -9,7 +9,9 @@ import (
 	"strconv"
 )
 
-var variablesKey = "mux.Variables"
+type VariablesKey string
+
+var variablesKey VariablesKey = "mux.Variables"
 
 type Variables map[string][]string
 

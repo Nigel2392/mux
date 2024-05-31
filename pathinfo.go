@@ -1,6 +1,7 @@
 package mux
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -121,6 +122,40 @@ func (p *PathInfo) Match(path []string) (bool, Variables) {
 		}
 	}
 	return true, variables
+}
+
+// Reverse returns the path with the variables replaced.
+//
+// If a variable is not found, this function will error.
+func (p *PathInfo) Reverse(variables ...interface{}) (string, error) {
+	var b strings.Builder
+	var varIndex = 0
+	b.WriteString(URL_DELIM)
+	for i, part := range p.Path {
+		if part.IsGlob && len(variables) > varIndex {
+			for _, v := range variables[varIndex:] {
+				b.WriteString(fmt.Sprint(v))
+				b.WriteString(URL_DELIM)
+			}
+			break
+		}
+
+		if part.IsVariable && varIndex >= len(variables) {
+			return "", fmt.Errorf("not enough variables to replace all variables in path")
+		}
+
+		if part.IsVariable {
+			b.WriteString(fmt.Sprint(variables[varIndex]))
+			varIndex++
+		} else {
+			b.WriteString(part.Part)
+		}
+
+		if i < len(p.Path)-1 {
+			b.WriteString(URL_DELIM)
+		}
+	}
+	return b.String(), nil
 }
 
 // NewPathInfo creates a new PathInfo object from a path string.

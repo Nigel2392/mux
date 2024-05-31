@@ -42,25 +42,34 @@ func (r *Route) Any(path string, handler Handler, name ...string) *Route {
 	return r.Handle(ANY, path, handler, name...)
 }
 
+func (r *Route) HandleFunc(method string, path string, handler func(w http.ResponseWriter, r *http.Request), name ...string) *Route {
+	return r.Handle(method, path, NewHandler(handler), name...)
+}
+
+func (r *Route) AddRoute(rt *Route) {
+	rt.Parent = r
+	rt.ParentMux = r.ParentMux
+	if rt.identifier == 0 {
+		rt.identifier = randInt64()
+	}
+
+	rt.Path = r.Path.CopyAppend(
+		rt.Path,
+	)
+
+	r.Children = append(r.Children, rt)
+}
+
 // Handle adds a handler to the route.
 //
 // It returns the route that was added so that it can be used to add children.
 func (r *Route) Handle(method string, path string, handler Handler, name ...string) *Route {
-	var n string
-	if len(name) > 0 {
-		n = name[0]
-	}
-	var route = &Route{
-		Path: r.Path.CopyAppend(
-			NewPathInfo(path),
-		),
-		Handler:    handler,
-		Name:       n,
-		Method:     method,
-		Parent:     r,
-		ParentMux:  r.ParentMux,
-		identifier: randInt64(),
-	}
+	var route = NewRoute(method, path, handler, name...)
+	route.Path = r.Path.CopyAppend(
+		route.Path,
+	)
+	route.Parent = r
+	route.ParentMux = r.ParentMux
 	r.Children = append(r.Children, route)
 	return route
 }

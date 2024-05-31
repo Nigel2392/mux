@@ -1,6 +1,7 @@
 package mux_test
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -252,6 +253,65 @@ func BenchmarkMatch(b *testing.B) {
 			})
 			b.StopTimer()
 		}
+	}
+}
+
+type reverseTest struct {
+	name     string
+	args     []interface{}
+	expected string
+}
+
+func TestReverse(t *testing.T) {
+	var reverseTests = []reverseTest{
+		{
+			name:     "/",
+			args:     nil,
+			expected: "/",
+		},
+		{
+			name:     "/hello",
+			args:     nil,
+			expected: "/hello",
+		},
+		{
+			name:     "/hello/world",
+			args:     nil,
+			expected: "/hello/world",
+		},
+		{
+			name:     "/hello/world/<<name>>",
+			args:     []interface{}{"john"},
+			expected: "/hello/world/john",
+		},
+		{
+			name:     "/hello/world/<<name>>/<<age>>",
+			args:     []interface{}{"john", 20},
+			expected: "/hello/world/john/20",
+		},
+		{
+			name:     "/hello/world/<<name>>/<<age>>/*/",
+			args:     []interface{}{"john", 20, "hello/world"},
+			expected: "/hello/world/john/20/hello/world/",
+		},
+		{
+			name:     "/hello/world/<<name>>/*/",
+			args:     []interface{}{"john", 20, "hello/world"},
+			expected: "/hello/world/john/20/hello/world/",
+		},
+	}
+
+	for _, test := range reverseTests {
+		t.Run(fmt.Sprintf("Reverse-(%s)", test.name), func(t *testing.T) {
+			var info = mux.NewPathInfo(test.name)
+			var result, err = info.Reverse(test.args...)
+			if err != nil {
+				t.Errorf("Expected no error, got %v", err)
+			}
+			if result != test.expected {
+				t.Errorf("Expected %s, got %s", test.expected, result)
+			}
+		})
 	}
 }
 

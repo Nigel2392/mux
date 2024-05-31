@@ -158,3 +158,51 @@ func TestFind(t *testing.T) {
 		t.Logf("%s ---> %s", test.name, route.Path.String())
 	}
 }
+
+var reverseTests = []reverseTest{
+	{
+		name:     "index",
+		args:     nil,
+		expected: "/",
+	},
+	{
+		name:     "hello",
+		args:     nil,
+		expected: "/hello",
+	},
+	{
+		name:     "hello:world",
+		args:     nil,
+		expected: "/hello/world",
+	},
+	{
+		name:     "hello:world:named",
+		args:     []interface{}{"john"},
+		expected: "/hello/world/john",
+	},
+	{
+		name:     "numbered",
+		args:     []interface{}{"john", 20},
+		expected: "/hello/world/john/20",
+	},
+	{
+		name:     "hello:world:named:gobbed",
+		args:     []interface{}{"john", 20, "hello/world"},
+		expected: "/hello/world/john/20/asd/hello/world/",
+	},
+}
+
+func TestMuxReverse(t *testing.T) {
+	for _, test := range reverseTests {
+		var path, err = rt.Reverse(test.name, test.args...)
+		if err != nil {
+			t.Errorf("Expected to reverse %s, got error %v", test.name, err)
+			return
+		}
+		if path != test.expected {
+			t.Errorf("Expected %s, got %s", test.expected, path)
+			return
+		}
+		t.Logf("%s ---> %s", test.name, path)
+	}
+}

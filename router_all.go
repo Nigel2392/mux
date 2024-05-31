@@ -3,13 +3,35 @@
 
 package mux
 
-import "net/http"
+import (
+	"net/http"
+)
 
 // The muxer.
 type Mux struct {
 	routes          []*Route
 	middleware      []Middleware
 	NotFoundHandler http.HandlerFunc
+}
+
+func newRoute(method string, handler Handler, name ...string) *Route {
+	var n string
+	if len(name) > 0 {
+		n = name[0]
+	}
+	var route = &Route{
+		Handler:    handler,
+		Name:       n,
+		Method:     method,
+		identifier: randInt64(),
+	}
+	return route
+}
+
+func NewRoute(method, path string, handler Handler, name ...string) *Route {
+	var rt = newRoute(method, handler, name...)
+	rt.Path = NewPathInfo(path)
+	return rt
 }
 
 func (r *Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -48,20 +70,23 @@ func (r *Mux) Match(method string, path string) (*Route, Variables) {
 }
 
 func (r *Mux) Handle(method string, path string, handler Handler, name ...string) *Route {
-	var n string
-	if len(name) > 0 {
-		n = name[0]
-	}
-	var route = &Route{
-		Path:       NewPathInfo(path),
-		Handler:    handler,
-		Name:       n,
-		Method:     method,
-		ParentMux:  r,
-		identifier: randInt64(),
-	}
+	var route = NewRoute(method, path, handler, name...)
 	r.routes = append(r.routes, route)
 	return route
+}
+
+func (r *Mux) AddRoute(rt *Route) {
+	rt.ParentMux = r
+
+	if rt.identifier == 0 {
+		rt.identifier = randInt64()
+	}
+
+	r.routes = append(r.routes, rt)
+}
+
+func (r *Mux) HandleFunc(method string, path string, handler http.HandlerFunc, name ...string) *Route {
+	return r.Handle(method, path, handler, name...)
 }
 
 func (r *Mux) Get(path string, handler Handler, name ...string) *Route {

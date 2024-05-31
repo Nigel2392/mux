@@ -51,3 +51,11 @@ func (r *Mux) Find(name string) *Route {
 	}
 	return nil
 }
+
+func (r *Mux) Reverse(name string, variables ...interface{}) (string, error) {
+	var route = r.Find(name)
+	if route == nil {
+		return "", ErrRouteNotFound
+	}
+	return route.Path.Reverse(variables...)
+}
