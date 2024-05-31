@@ -3,9 +3,7 @@
 
 package mux
 
-import (
-	"net/http"
-)
+import "net/http"
 
 // The muxer.
 type Mux struct {
@@ -14,29 +12,9 @@ type Mux struct {
 	NotFoundHandler http.HandlerFunc
 }
 
-func newRoute(method string, handler Handler, name ...string) *Route {
-	var n string
-	if len(name) > 0 {
-		n = name[0]
-	}
-	var route = &Route{
-		Handler:    handler,
-		Name:       n,
-		Method:     method,
-		identifier: randInt64(),
-	}
-	return route
-}
-
-func NewRoute(method, path string, handler Handler, name ...string) *Route {
-	var rt = newRoute(method, handler, name...)
-	rt.Path = NewPathInfo(path)
-	return rt
-}
-
 func (r *Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	var route, variables = r.Match(req.Method, req.URL.Path)
-	if route == nil {
+	if route == nil || route.Handler == nil {
 		r.NotFound(w, req)
 		return
 	}
@@ -44,9 +22,14 @@ func (r *Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	req = SetVariables(req, variables)
 
 	var handler Handler = route
+	for i := len(route.Middleware) - 1; i >= 0; i-- {
+		handler = route.Middleware[i](handler)
+	}
+
 	for i := len(r.middleware) - 1; i >= 0; i-- {
 		handler = r.middleware[i](handler)
 	}
+
 	handler.ServeHTTP(w, req)
 }
 
@@ -80,6 +63,10 @@ func (r *Mux) AddRoute(rt *Route) {
 
 	if rt.identifier == 0 {
 		rt.identifier = randInt64()
+	}
+
+	for _, child := range rt.Children {
+		setChildData(child, rt)
 	}
 
 	r.routes = append(r.routes, rt)

@@ -31,6 +31,10 @@ func (l *Logger) Intercept(next mux.Handler) mux.Handler {
 			path       = r.URL.Path
 		)
 
+		if r.URL.RawQuery != "" {
+			path += "?" + r.URL.RawQuery
+		}
+
 		next.ServeHTTP(w, r)
 
 		var timeTaken = time.Since(startTime)

@@ -18,6 +18,9 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func NewHandler(f HandleFunc) Handler {
+	if f == nil {
+		return nil
+	}
 	return &handler{
 		handleFunc: f,
 	}
