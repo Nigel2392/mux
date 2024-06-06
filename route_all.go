@@ -53,6 +53,7 @@ func setChildData(child, parent *Route) {
 		child.Path = parent.Path.CopyAppend(
 			child.Path,
 		)
+		child.Middleware = append(child.Middleware, parent.Middleware...)
 	} else if parent != nil {
 		child.ParentMux = parent.ParentMux
 	}
