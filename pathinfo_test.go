@@ -245,9 +245,9 @@ func BenchmarkMatch(b *testing.B) {
 			b.StartTimer()
 			b.Run("Match-"+strconv.Itoa(len(strings.Split(route, mux.URL_DELIM))), func(b *testing.B) {
 				for i := 0; i < b.N; i++ {
-					var match, _ = test.router.Match(mux.ANY, route)
-					if match == nil {
-						b.Errorf("Expected %v, got %v: %s", true, match, route)
+					var match, _, err = test.router.Match(mux.ANY, route)
+					if match == nil || err != nil {
+						b.Errorf("Expected %v, got %v: %s (%v)", true, match, route, err)
 					}
 				}
 			})

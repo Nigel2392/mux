@@ -63,7 +63,6 @@ func setChildData(child, parent *Route) {
 	for _, sub := range child.Children {
 		setChildData(sub, child)
 	}
-
 }
 
 func (r *Route) AddRoute(rt *Route) {

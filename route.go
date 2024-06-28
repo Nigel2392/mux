@@ -2,6 +2,7 @@ package mux
 
 import (
 	"crypto/rand"
+	"errors"
 	"math"
 	"math/big"
 	"strings"
@@ -29,6 +30,7 @@ func newRoute(method string, handler Handler, name ...string) *Route {
 		Handler:    handler,
 		Name:       n,
 		Method:     method,
+		Middleware: make([]Middleware, 0),
 		identifier: randInt64(),
 	}
 	return route
@@ -96,23 +98,37 @@ func (r *Route) RemoveChild(child *Route) {
 	removeRoute(r.Children, child)
 }
 
+var ErrMethodNotAllowed = errors.New("method not allowed")
+
 // Helper function to check if the route matches the method and path.
-func routeMatched(matched bool, method string, route *Route) bool {
-	return matched && (route.Method == ANY || route.Method == method || method == ANY) && route.Handler != nil
+func routeMatched(matched bool, method string, route *Route) (bool, error) {
+	if !matched || route.Handler == nil {
+		return false, nil
+	}
+
+	if route.Method != ANY && route.Method != method {
+		return false, ErrMethodNotAllowed
+	}
+
+	return matched && (route.Method == ANY || route.Method == method) && route.Handler != nil, nil
 }
 
-func (r *Route) Match(method string, path []string) (*Route, bool, Variables) {
+func (r *Route) Match(method string, path []string) (*Route, bool, Variables, error) {
 	var matched, variables = r.Path.Match(path)
-	if routeMatched(matched, method, r) {
-		return r, matched, variables
+	if ok, err := routeMatched(matched, method, r); ok || err != nil {
+		return r, matched, variables, err
 	}
+
 	for _, child := range r.Children {
-		var rt, matched, variables = child.Match(method, path)
-		if routeMatched(matched, method, rt) {
-			return rt, matched, variables
+		var rt, matched, variables, err = child.Match(method, path)
+		if err != nil {
+			return nil, false, nil, err
+		}
+		if ok, err := routeMatched(matched, method, rt); ok || err != nil {
+			return rt, matched, variables, err
 		}
 	}
-	return nil, false, nil
+	return nil, false, nil, nil
 }
 
 func randInt64() int64 {
