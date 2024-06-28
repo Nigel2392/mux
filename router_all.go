@@ -10,16 +10,10 @@ type Mux struct {
 	routes          []*Route
 	middleware      []Middleware
 	NotFoundHandler http.HandlerFunc
-	ErrorHandler    func(w http.ResponseWriter, r *http.Request, err error)
 }
 
 func (r *Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	var route, variables, err = r.Match(req.Method, req.URL.Path)
-	if err != nil {
-		r.HandleError(w, req, err)
-		return
-	}
-
+	var route, variables = r.Match(req.Method, req.URL.Path)
 	if route == nil || route.Handler == nil {
 		r.NotFound(w, req)
 		return
@@ -47,31 +41,27 @@ func (r *Mux) NotFound(w http.ResponseWriter, req *http.Request) {
 	http.NotFound(w, req)
 }
 
-func (r *Mux) HandleError(w http.ResponseWriter, req *http.Request, err error) {
-	if r.ErrorHandler != nil {
-		r.ErrorHandler(w, req, err)
-		return
-	}
-	http.Error(w,
-		http.StatusText(http.StatusInternalServerError),
-		http.StatusInternalServerError,
-	)
-}
-
-func (r *Mux) Match(method string, path string) (*Route, Variables, error) {
+func (r *Mux) Match(method string, path string) (*Route, Variables) {
 	var parts = SplitPath(path)
 	for _, route := range r.routes {
-		var rt, matched, variables, err = route.Match(method, parts)
+		var rt, matched, variables = route.Match(method, parts)
 		if matched {
-			return rt, variables, err
+			return rt, variables
 		}
 	}
-	return nil, nil, nil
+	return nil, nil
 }
 
 func (r *Mux) Handle(method string, path string, handler Handler, name ...string) *Route {
 	var route = NewRoute(method, path, handler, name...)
 	r.routes = append(r.routes, route)
+
+	setChildData(route, nil)
+
+	for _, child := range route.Children {
+		setChildData(child, route)
+	}
+
 	return route
 }
 
