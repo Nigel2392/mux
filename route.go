@@ -8,14 +8,15 @@ import (
 )
 
 type Route struct {
-	Name       string
-	Method     string
-	Middleware []Middleware
-	Path       *PathInfo
-	Children   []*Route
-	Handler    Handler
-	Parent     *Route
-	ParentMux  *Mux
+	Name               string
+	Method             string
+	Middleware         []Middleware
+	Path               *PathInfo
+	Children           []*Route
+	Handler            Handler
+	Parent             *Route
+	ParentMux          *Mux
+	DisabledMiddleware bool // Is middleware disabled for this route?
 
 	identifier int64
 }
@@ -47,6 +48,11 @@ func (r *Route) ID() int64 {
 // Use adds middleware to the route.
 func (r *Route) Use(middleware ...Middleware) {
 	r.Middleware = append(r.Middleware, middleware...)
+}
+
+// DisableMiddleware disables the middleware for the route.
+func (r *Route) RunsMiddleware(b bool) {
+	r.DisabledMiddleware = !b
 }
 
 // String returns a string representation of the route.
