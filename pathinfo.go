@@ -155,6 +155,9 @@ func (p *PathInfo) Reverse(variables ...interface{}) (string, error) {
 			b.WriteString(URL_DELIM)
 		}
 	}
+	if !p.IsGlob && len(variables) > varIndex {
+		return "", fmt.Errorf("too many variables provided to replace in path")
+	}
 	return b.String(), nil
 }
 
