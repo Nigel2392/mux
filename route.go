@@ -68,9 +68,15 @@ func (r *Route) find(names []string, index int) (*Route, bool) {
 	if len(names) <= index {
 		return nil, false
 	}
+	// If the name matches and we are at the end of the names slice, return the route.
 	if r.Name == names[index] && len(names)-1 == index {
 		return r, true
 	}
+	// If the name matches, but we are not at the end of the names slice, continue searching.
+	if r.Name != names[index] {
+		return nil, false
+	}
+	// Check next parts for each child.
 	for _, child := range r.Children {
 		var route, ok = child.find(names, index+1)
 		if ok {
