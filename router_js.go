@@ -260,6 +260,9 @@ execPath:
 	for i := len(r.middleware) - 1; i >= 0; i-- {
 		handler = r.middleware[i](handler)
 	}
+	for i := len(route.PreMiddleware) - 1; i >= 0; i-- {
+		handler = route.PreMiddleware[i](handler)
+	}
 
 	go handler.ServeHTTP(variables)
 }

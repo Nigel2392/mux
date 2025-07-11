@@ -33,6 +33,10 @@ func (r *Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		for i := len(r.middleware) - 1; i >= 0; i-- {
 			handler = r.middleware[i](handler)
 		}
+
+		for i := len(route.PreMiddleware) - 1; i >= 0; i-- {
+			handler = route.PreMiddleware[i](handler)
+		}
 	}
 
 	handler.ServeHTTP(w, req)

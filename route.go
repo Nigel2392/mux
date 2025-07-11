@@ -11,6 +11,7 @@ type Route struct {
 	Name               string
 	Method             string
 	Middleware         []Middleware
+	PreMiddleware      []Middleware
 	Path               *PathInfo
 	Children           []*Route
 	Handler            Handler
@@ -48,6 +49,11 @@ func (r *Route) ID() int64 {
 // Use adds middleware to the route.
 func (r *Route) Use(middleware ...Middleware) {
 	r.Middleware = append(r.Middleware, middleware...)
+}
+
+// Preprocess adds middleware to the route that will be executed before any other middleware or handler.
+func (r *Route) Preprocess(middleware ...Middleware) {
+	r.PreMiddleware = append(r.PreMiddleware, middleware...)
 }
 
 // DisableMiddleware disables the middleware for the route.
