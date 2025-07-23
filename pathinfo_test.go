@@ -105,7 +105,7 @@ func TestPathInfo(t *testing.T) {
 		},
 	}
 	for _, test := range pathInfoTests {
-		var info = mux.NewPathInfo(test.path)
+		var info = mux.NewPathInfo(nil, test.path)
 		if info.IsGlob != test.ExpectedIsGlob {
 			t.Errorf("Expected %v, got %v", test.ExpectedIsGlob, info.IsGlob)
 		}
@@ -136,6 +136,8 @@ type matchTest struct {
 
 	info *mux.PathInfo
 
+	data map[string][]string
+
 	ExpectedMatched bool
 }
 
@@ -144,49 +146,56 @@ func TestMatch(t *testing.T) {
 		{
 			path:            "/",
 			pathToMatch:     "/",
-			info:            mux.NewPathInfo("/"),
+			info:            mux.NewPathInfo(nil, "/"),
 			ExpectedMatched: true,
 		},
 		{
 			path:            "/*",
 			pathToMatch:     "/asd",
-			info:            mux.NewPathInfo("/*"),
+			info:            mux.NewPathInfo(nil, "/*"),
 			ExpectedMatched: true,
 		},
 		{
 			path:            "/hello",
 			pathToMatch:     "/hello",
-			info:            mux.NewPathInfo("/hello"),
+			info:            mux.NewPathInfo(nil, "/hello"),
 			ExpectedMatched: true,
 		},
 		{
 			path:            "/hello",
 			pathToMatch:     "/hello/",
-			info:            mux.NewPathInfo("/hello"),
+			info:            mux.NewPathInfo(nil, "/hello"),
 			ExpectedMatched: true,
 		},
 		{
 			path:            "/hello",
 			pathToMatch:     "/hello/world",
-			info:            mux.NewPathInfo("/hello"),
+			info:            mux.NewPathInfo(nil, "/hello"),
 			ExpectedMatched: false,
 		},
 		{
 			path:            "/hello/world/",
 			pathToMatch:     "/hello/world",
-			info:            mux.NewPathInfo("/hello/world/"),
+			info:            mux.NewPathInfo(nil, "/hello/world/"),
 			ExpectedMatched: true,
 		},
 		{
 			path:            "/hello/world/<<name>>",
 			pathToMatch:     "/hello/world/john",
-			info:            mux.NewPathInfo("/hello/world/<<name>>"),
+			info:            mux.NewPathInfo(nil, "/hello/world/<<name>>"),
 			ExpectedMatched: true,
 		},
 		{
 			path:            "/hello/world/<<name>>/*/",
 			pathToMatch:     "/hello/world/john/hello/world",
-			info:            mux.NewPathInfo("/hello/world/<<name>>/*/"),
+			info:            mux.NewPathInfo(nil, "/hello/world/<<name>>/*/"),
+			ExpectedMatched: true,
+		},
+		{
+			path:            "/hello/world/<<name>>/*",
+			pathToMatch:     "/hello/world/john/hello/world/my/world",
+			info:            mux.NewPathInfo(nil, "/hello/world/<<name>>/*"),
+			data:            map[string][]string{"name": {"john"}, mux.GLOB: {"hello", "world", "my", "world"}},
 			ExpectedMatched: true,
 		},
 	}
@@ -196,6 +205,31 @@ func TestMatch(t *testing.T) {
 			t.Errorf("Expected %v, got %v: %s != %s", test.ExpectedMatched, matched, test.path, test.pathToMatch)
 			t.Logf("%#v", test.info)
 		}
+
+		var expectedVars = make(mux.Variables)
+		if test.data != nil {
+			for k, v := range test.data {
+				expectedVars[k] = v
+			}
+
+			if len(vars) != len(expectedVars) {
+				t.Errorf("Expected %v, got %v: %s != %s", len(expectedVars), len(vars), test.path, test.pathToMatch)
+			}
+			for k, v := range vars {
+				if len(v) != len(expectedVars[k]) {
+					t.Errorf("Expected %v, got %v: %s != %s", len(expectedVars[k]), len(v), test.path, test.pathToMatch)
+				}
+				for i, val := range v {
+					if val != expectedVars[k][i] {
+						t.Errorf("Expected %v, got %v: %s != %s", expectedVars[k][i], val, test.path, test.pathToMatch)
+					}
+
+				}
+				t.Logf("Variable %s: %s", k, v)
+			}
+
+		}
+
 		t.Log(test.path, test.pathToMatch, test.ExpectedMatched, vars)
 	}
 
@@ -299,11 +333,21 @@ func TestReverse(t *testing.T) {
 			args:     []interface{}{"john", 20, "hello/world"},
 			expected: "/hello/world/john/20/hello/world/",
 		},
+		{
+			name:     "/hello/world/<<name>>/*",
+			args:     []interface{}{"john", 20, "hello/world/my/world"},
+			expected: "/hello/world/john/20/hello/world/my/world/",
+		},
+		{
+			name:     "/hello/world/<<name>>/<<age>>/*/",
+			args:     []interface{}{"john", 20},
+			expected: "/hello/world/john/20/",
+		},
 	}
 
 	for _, test := range reverseTests {
 		t.Run(fmt.Sprintf("Reverse-(%s)", test.name), func(t *testing.T) {
-			var info = mux.NewPathInfo(test.name)
+			var info = mux.NewPathInfo(nil, test.name)
 			var result, err = info.Reverse(test.args...)
 			if err != nil {
 				t.Errorf("Expected no error, got %v", err)

@@ -38,7 +38,7 @@ func newRoute(method string, handler Handler, name ...string) *Route {
 
 func NewRoute(method, path string, handler Handler, name ...string) *Route {
 	var rt = newRoute(method, handler, name...)
-	rt.Path = NewPathInfo(path)
+	rt.Path = NewPathInfo(rt, path)
 	return rt
 }
 

@@ -24,12 +24,18 @@ var (
 	GLOB            = "*"
 )
 
+type Resolver interface {
+	Reverse(variables ...interface{}) (string, error)
+	Match(path []string) (bool, Variables)
+}
+
 // PathInfo contains information about a path.
 //
 // It can be used to match a path, and retrieve variables from it.
 type PathInfo struct {
-	IsGlob bool
-	Path   []*PathPart
+	IsGlob   bool
+	Path     []*PathPart
+	Resolver Resolver
 }
 
 // String returns a string representation of the path.
@@ -116,6 +122,11 @@ func (p *PathInfo) Match(path []string) (bool, Variables) {
 			}
 			variables[part.Part] = append(variables[part.Part], pathPart)
 		} else if part.Part != path[i] && part.IsGlob {
+
+			if p.Resolver != nil {
+				return p.Resolver.Match(path[i:])
+			}
+
 			variables[GLOB] = append(variables[GLOB], path[i:]...)
 		} else if part.Part != path[i] {
 			return false, nil
@@ -132,7 +143,18 @@ func (p *PathInfo) Reverse(variables ...interface{}) (string, error) {
 	var varIndex = 0
 	b.WriteString(URL_DELIM)
 	for i, part := range p.Path {
-		if part.IsGlob && len(variables) > varIndex {
+		if part.IsGlob && len(variables) >= varIndex {
+
+			// The resolver can take over when it is a GLOB
+			if p.Resolver != nil {
+				var reversed, err = p.Resolver.Reverse(variables[varIndex:]...)
+				if err != nil {
+					return "", err
+				}
+				b.WriteString(reversed)
+				break
+			}
+
 			for _, v := range variables[varIndex:] {
 				b.WriteString(fmt.Sprint(v))
 				b.WriteString(URL_DELIM)
@@ -167,11 +189,12 @@ func (p *PathInfo) Reverse(variables ...interface{}) (string, error) {
 // which are defined by the text between the VARIABLE_DELIMS.
 //
 // This function will panic if the GLOB is not the last part of the path.
-func NewPathInfo(path string) *PathInfo {
+func NewPathInfo(rt *Route, path string) *PathInfo {
 	var parts = SplitPath(path)
 	var info = &PathInfo{
 		Path: make([]*PathPart, 0, len(parts)),
 	}
+
 	for i, part := range parts {
 		var pathPart = &PathPart{Part: part}
 
@@ -189,5 +212,12 @@ func NewPathInfo(path string) *PathInfo {
 		}
 		info.Path = append(info.Path, pathPart)
 	}
+
+	if rt != nil && info.IsGlob {
+		if resolver, ok := rt.Handler.(Resolver); ok {
+			info.Resolver = resolver
+		}
+	}
+
 	return info
 }
