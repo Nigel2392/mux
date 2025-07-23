@@ -25,7 +25,7 @@ var (
 )
 
 type Resolver interface {
-	Reverse(variables ...interface{}) (string, error)
+	Reverse(baseURL string, variables ...interface{}) (string, error)
 	Match(vars Variables, path []string) (bool, Variables)
 }
 
@@ -147,19 +147,7 @@ func (p *PathInfo) Reverse(variables ...interface{}) (string, error) {
 
 			// The resolver can take over when it is a GLOB
 			if p.Resolver != nil {
-				var reversed, err = p.Resolver.Reverse(variables[varIndex:]...)
-				if err != nil {
-					return "", err
-				}
-
-				reversed = strings.TrimPrefix(reversed, URL_DELIM)
-
-				b.WriteString(reversed)
-
-				if !strings.HasSuffix(reversed, URL_DELIM) {
-					b.WriteString(URL_DELIM)
-				}
-				break
+				return p.Resolver.Reverse(b.String(), variables[varIndex:]...)
 			}
 
 			for _, v := range variables[varIndex:] {
@@ -184,9 +172,11 @@ func (p *PathInfo) Reverse(variables ...interface{}) (string, error) {
 			b.WriteString(URL_DELIM)
 		}
 	}
+
 	if !p.IsGlob && len(variables) > varIndex {
 		return "", ErrTooManyVariables
 	}
+
 	return b.String(), nil
 }
 
