@@ -26,7 +26,7 @@ var (
 
 type Resolver interface {
 	Reverse(variables ...interface{}) (string, error)
-	Match(path []string) (bool, Variables)
+	Match(vars Variables, path []string) (bool, Variables)
 }
 
 // PathInfo contains information about a path.
@@ -124,7 +124,7 @@ func (p *PathInfo) Match(path []string) (bool, Variables) {
 		} else if part.Part != path[i] && part.IsGlob {
 
 			if p.Resolver != nil {
-				return p.Resolver.Match(path[i:])
+				return p.Resolver.Match(variables, path[i:])
 			}
 
 			variables[GLOB] = append(variables[GLOB], path[i:]...)
@@ -151,7 +151,14 @@ func (p *PathInfo) Reverse(variables ...interface{}) (string, error) {
 				if err != nil {
 					return "", err
 				}
+
+				reversed = strings.TrimPrefix(reversed, URL_DELIM)
+
 				b.WriteString(reversed)
+
+				if !strings.HasSuffix(reversed, URL_DELIM) {
+					b.WriteString(URL_DELIM)
+				}
 				break
 			}
 
@@ -163,7 +170,7 @@ func (p *PathInfo) Reverse(variables ...interface{}) (string, error) {
 		}
 
 		if part.IsVariable && varIndex >= len(variables) {
-			return "", fmt.Errorf("not enough variables to replace all variables in path")
+			return "", ErrNotEnoughVariables
 		}
 
 		if part.IsVariable {

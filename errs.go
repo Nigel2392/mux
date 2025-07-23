@@ -7,6 +7,7 @@ func (e Error) Error() string {
 }
 
 const (
-	ErrRouteNotFound    = Error("route not found")
-	ErrTooManyVariables = Error("too many variables provided to replace in path")
+	ErrRouteNotFound      = Error("route not found")
+	ErrTooManyVariables   = Error("too many variables provided to replace in path")
+	ErrNotEnoughVariables = Error("not enough variables provided to replace in path")
 )
