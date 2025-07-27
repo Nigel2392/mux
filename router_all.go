@@ -5,11 +5,39 @@ package mux
 
 import "net/http"
 
+var (
+	_ Multiplexer = (*Mux)(nil)
+	_ Multiplexer = (*Route)(nil)
+)
+
+// The interface for our multiplexer
+//
+// This is a wrapper around the nigel2392/mux.Mux interface
+type Multiplexer interface {
+	Use(middleware ...Middleware)
+	Handle(method string, path string, handler Handler, name ...string) *Route
+	HandleFunc(method string, path string, handler func(w http.ResponseWriter, r *http.Request), name ...string) *Route
+	AddRoute(route *Route)
+
+	Any(path string, handler Handler, name ...string) *Route
+	Get(path string, handler Handler, name ...string) *Route
+	Post(path string, handler Handler, name ...string) *Route
+	Put(path string, handler Handler, name ...string) *Route
+	Patch(path string, handler Handler, name ...string) *Route
+	Delete(path string, handler Handler, name ...string) *Route
+}
+
 // The muxer.
 type Mux struct {
 	routes          []*Route
 	middleware      []Middleware
 	NotFoundHandler http.HandlerFunc
+}
+
+// Namespace allows you to create a new Multiplexer with speficic
+// functions to run on the added routes.
+func (r *Mux) Namespace(opts NamespaceOptions) Multiplexer {
+	return newNamespace(r, opts)
 }
 
 func (r *Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -20,6 +48,9 @@ func (r *Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	req = SetVariables(req, variables)
+	req = req.WithContext(ContextWithRoute(
+		req.Context(), route,
+	))
 
 	var handler Handler = route
 
@@ -88,8 +119,8 @@ func (r *Mux) AddRoute(rt *Route) {
 	r.routes = append(r.routes, rt)
 }
 
-func (r *Mux) HandleFunc(method string, path string, handler http.HandlerFunc, name ...string) *Route {
-	return r.Handle(method, path, handler, name...)
+func (r *Mux) HandleFunc(method string, path string, handler func(w http.ResponseWriter, r *http.Request), name ...string) *Route {
+	return r.Handle(method, path, NewHandler(handler), name...)
 }
 
 func (r *Mux) Get(path string, handler Handler, name ...string) *Route {

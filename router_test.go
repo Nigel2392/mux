@@ -2,6 +2,7 @@ package mux_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -31,11 +32,13 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 func hello(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "hello")
+	var rt = mux.RouteFromContext(r.Context())
+	fmt.Fprintf(w, "hello from %s", rt.Name)
 }
 
 func helloworld(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "helloworld")
+	var rt = mux.RouteFromContext(r.Context())
+	fmt.Fprintf(w, "helloworld from %s", rt.Name)
 }
 
 func helloworldname(w http.ResponseWriter, r *http.Request) {
@@ -81,11 +84,11 @@ func TestRouter(t *testing.T) {
 		},
 		{
 			path:     "/hello/",
-			expected: "hello",
+			expected: "hello from hello",
 		},
 		{
 			path:     "/hello/world/",
-			expected: "helloworld",
+			expected: "helloworld from world",
 		},
 		{
 			path:     "/hello/world/john/",
@@ -204,5 +207,49 @@ func TestMuxReverse(t *testing.T) {
 			return
 		}
 		t.Logf("%s ---> %s", test.name, path)
+	}
+}
+
+const nsContextKey = "namespace"
+
+func TestMuxNamespace(t *testing.T) {
+	var m = mux.New()
+	var ns = m.Namespace(mux.NamespaceOptions{
+		OnRouteAdded: func(route *mux.Route) {
+			route.Name = fmt.Sprintf("%s:%s", nsContextKey, route.Name)
+		},
+		OnRouteServe: func(r *http.Request) *http.Request {
+			return r.WithContext(context.WithValue(
+				r.Context(), nsContextKey, "namespaceValue",
+			))
+		},
+	})
+	ns.Handle("GET", "/hello", mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
+		var rt = mux.RouteFromContext(r.Context())
+		fmt.Fprintf(w, "Hello from namespace: %s", rt.Name)
+	}), "hello")
+
+	ns.Handle("GET", "/root", mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
+		var rt = mux.RouteFromContext(r.Context())
+		var namespaceValue = r.Context().Value(nsContextKey)
+		fmt.Fprintf(w, "Hello from root: %s / %s", rt.Name, namespaceValue)
+	}), "root")
+
+	var req, _ = http.NewRequest("GET", "/hello", nil)
+	var w = response_writer{}
+	m.ServeHTTP(&w, req)
+
+	if w.String() != "Hello from namespace: namespace:hello" {
+		t.Errorf("Expected 'Hello from namespace: namespace:hello', got '%s'", w.String())
+		return
+	}
+
+	req, _ = http.NewRequest("GET", "/root", nil)
+	w = response_writer{}
+	m.ServeHTTP(&w, req)
+
+	if w.String() != "Hello from root: namespace:root / namespaceValue" {
+		t.Errorf("Expected 'Hello from root: namespace:root / namespaceValue', got '%s'", w.String())
+		return
 	}
 }
