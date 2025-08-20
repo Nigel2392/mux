@@ -29,7 +29,12 @@ type Session interface {
 //
 // Makes the session globally available, and avoids import cycles.
 func Retrieve(r *http.Request) Session {
-	var v = r.Context().Value(session_interface_key)
+	return SessionFromContext(r.Context())
+}
+
+// SessionFromContext retrieves the session from the context.
+func SessionFromContext(ctx context.Context) Session {
+	var v = ctx.Value(session_interface_key)
 	if v == nil {
 		return nil
 	}

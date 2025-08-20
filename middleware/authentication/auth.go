@@ -10,7 +10,21 @@ import (
 	"github.com/Nigel2392/mux"
 )
 
-const context_user_key = "mux.middleware.authentication.User"
+const (
+	context_user_key = "mux.middleware.authentication.User"
+)
+
+type userContextValue struct {
+	load func() User
+	user User
+}
+
+func (u *userContextValue) User() User {
+	if u.user == nil {
+		u.user = u.load()
+	}
+	return u.user
+}
 
 // Default request user interface.
 //
@@ -26,24 +40,33 @@ type User interface {
 	IsAdmin() bool
 }
 
-// Add a user to the request.
-func AddUserMiddleware(f func(*http.Request) User) mux.Middleware {
-
-	return func(next mux.Handler) mux.Handler {
-		return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
-			r = r.WithContext(context.WithValue(r.Context(), context_user_key, f(r)))
-			next.ServeHTTP(w, r)
-		})
+func UserFromContext(ctx context.Context) User {
+	var v = ctx.Value(context_user_key)
+	if v == nil {
+		return nil
 	}
+	return v.(*userContextValue).User()
 }
 
 // Helper function to get the user from the request.
 func Retrieve(r *http.Request) User {
-	var v = r.Context().Value(context_user_key)
-	if v == nil {
-		return nil
+	return UserFromContext(r.Context())
+}
+
+// Add a user to the request.
+func AddUserMiddleware(f func(*http.Request) User) mux.Middleware {
+	return func(next mux.Handler) mux.Handler {
+		return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
+
+			r = r.WithContext(context.WithValue(r.Context(), context_user_key, &userContextValue{
+				load: func() User {
+					return f(r)
+				},
+			}))
+
+			next.ServeHTTP(w, r)
+		})
 	}
-	return v.(User)
 }
 
 // Middleware that only allows users who are authenticated to continue.
