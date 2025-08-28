@@ -150,9 +150,12 @@ func (p *PathInfo) Reverse(variables ...interface{}) (string, error) {
 				return p.Resolver.Reverse(b.String(), variables[varIndex:]...)
 			}
 
-			for _, v := range variables[varIndex:] {
+			for j, v := range variables[varIndex:] {
 				b.WriteString(fmt.Sprint(v))
-				b.WriteString(URL_DELIM)
+
+				if j+i < len(p.Path)-1 {
+					b.WriteString(URL_DELIM)
+				}
 			}
 			break
 		}
