@@ -4,14 +4,18 @@
 package sessions
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/alexedwards/scs/v2"
 )
 
+var _ Session = (*scsRequestSession)(nil)
+
 type scsRequestSession struct {
-	r     *http.Request
-	store *scs.SessionManager
+	r          *http.Request
+	store      *scs.SessionManager
+	finalizers []func(r *http.Request, ctx context.Context) (context.Context, error)
 }
 
 func (s *scsRequestSession) Get(key string) interface{} {
@@ -36,4 +40,8 @@ func (s *scsRequestSession) Delete(key string) {
 
 func (s *scsRequestSession) RenewToken() error {
 	return s.store.RenewToken(s.r.Context())
+}
+
+func (s *scsRequestSession) AddFinalizer(finalizer func(r *http.Request, ctx context.Context) (context.Context, error)) {
+	s.finalizers = append(s.finalizers, finalizer)
 }

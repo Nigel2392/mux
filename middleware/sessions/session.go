@@ -23,6 +23,7 @@ type Session interface {
 	Delete(key string)
 	Destroy() error
 	RenewToken() error
+	AddFinalizer(finalizer func(r *http.Request, ctx context.Context) (context.Context, error))
 }
 
 // Retrieve a session for the request.
@@ -74,6 +75,15 @@ func SessionMiddleware(store *scs.SessionManager) mux.Middleware {
 			// ADDED CODE
 
 			next.ServeHTTP(bw, r)
+
+			ctx = r.Context()
+			for _, finalizer := range scsSession.finalizers {
+				ctx, err = finalizer(r, ctx)
+				if err != nil {
+					store.ErrorFunc(w, r, err)
+					return
+				}
+			}
 
 			if r.MultipartForm != nil {
 				r.MultipartForm.RemoveAll()
