@@ -5,6 +5,7 @@ package authentication
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/Nigel2392/mux"
@@ -53,15 +54,35 @@ func Retrieve(r *http.Request) User {
 	return UserFromContext(r.Context())
 }
 
+// ContextWithUser returns a new context with the given user.
+func ContextWithUser(ctx context.Context, user any) context.Context {
+	var userFn func() User
+	switch v := user.(type) {
+	case User:
+		userFn = func() User {
+			return v
+		}
+	case func() User:
+		userFn = v
+	default:
+		panic(fmt.Sprintf(
+			"ContextWithUser: user must be of type User or func() User, got %T",
+			user,
+		))
+	}
+
+	return context.WithValue(ctx, context_user_key, &userContextValue{ //lint:ignore SA1029 context_user_key is OK here
+		load: userFn,
+	})
+}
+
 // Add a user to the request.
 func AddUserMiddleware(f func(*http.Request) User) mux.Middleware {
 	return func(next mux.Handler) mux.Handler {
 		return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
 
-			r = r.WithContext(context.WithValue(r.Context(), context_user_key, &userContextValue{
-				load: func() User {
-					return f(r)
-				},
+			r = r.WithContext(ContextWithUser(r.Context(), func() User {
+				return f(r)
 			}))
 
 			next.ServeHTTP(w, r)

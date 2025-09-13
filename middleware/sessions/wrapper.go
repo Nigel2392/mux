@@ -45,3 +45,7 @@ func (s *scsRequestSession) RenewToken() error {
 func (s *scsRequestSession) AddFinalizer(finalizer func(r *http.Request, ctx context.Context) (context.Context, error)) {
 	s.finalizers = append(s.finalizers, finalizer)
 }
+
+func (s *scsRequestSession) Store() *scs.SessionManager {
+	return s.store
+}
