@@ -3,7 +3,6 @@ package mux_test
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -139,6 +138,28 @@ type matchTest struct {
 	ExpectedMatched bool
 }
 
+func matchChain(chain []*mux.PathInfo, split []string) (bool, int, mux.Variables) {
+	idx := 0
+	var all mux.Variables
+	for _, pi := range chain {
+		ok, next, vars := pi.Match(split, idx)
+		if !ok && next == -1 {
+			return false, next, nil
+		}
+		// merge vars from this segment
+		if len(vars) > 0 {
+			if all == nil {
+				all = make(mux.Variables, len(vars))
+			}
+			for k, v := range vars {
+				all[k] = append(all[k], v...)
+			}
+		}
+		idx = next
+	}
+	return idx == len(split), idx, all
+}
+
 func TestMatch(t *testing.T) {
 	var matchTests = []matchTest{
 		{
@@ -213,6 +234,7 @@ func TestMatch(t *testing.T) {
 			ExpectedMatched: true,
 		},
 	}
+
 	for _, test := range matchTests {
 		var chain = strings.Split(test.path, mux.URL_DELIM+mux.URL_DELIM)
 		var paths = make([]*mux.PathInfo, len(chain))
@@ -234,7 +256,7 @@ func TestMatch(t *testing.T) {
 
 		var info = paths[len(paths)-1]
 		var split = mux.SplitPath(test.pathToMatch)
-		var matched, vars = info.Match(split)
+		var matched, _, vars = matchChain(paths, split)
 
 		if matched != test.ExpectedMatched {
 			t.Errorf("Expected %v, got %v: %s != %s (%d)", test.ExpectedMatched, matched, test.path, test.pathToMatch, len(split))
@@ -280,14 +302,24 @@ var testBenchMarks = []testBenchMark{
 		router: mux.New(),
 		routes_to_be_registered: []string{
 			"/",
-			"/*",
-			"/*",
 			"/hello/",
 			"/hello/world/",
 			"/hello/world/<<name>>/",
 			"/hello/world/<<name>>/<<age>>/",
 			"/hello/world/<<name>>/<<age>>/*/",
 			"/this/is/a/very/long/route/<<name>>/<<age>>/this/is/a/very/long/route/<<name>>/<<age>>/this/is/a/very/long/route/<<name>>/<<age>>/this/is/a/very/long/route/<<name>>/<<age>>/",
+			"/that/is/a//very/long/route/<<name>>/<<age>>/this/is/a//very/long/route/<<name>>/<<age>>//this/is/a/very/long/route/<<name>>/<<age>>//this/is/a/very/long//route/<<name>>/<<age>>/",
+			"/that/is/a//very/long/a/<<name>>/<<age>>/this/is/a//very/long/route/<<name>>/<<age>>//this/is/a/very/long/route/<<name>>/<<age>>//this/is/a/very/long//route/<<name>>/<<age>>/",
+			"/that/is/a//very/long/b/<<name>>/<<age>>/this/is/a//very/long/route/<<name>>/<<age>>//this/is/a/very/long/route/<<name>>/<<age>>//this/is/a/very/long//route/<<name>>/<<age>>/",
+			"/that/is/a//very/long/c/<<name>>/<<age>>/this/is/a//very/long/route/<<name>>/<<age>>//this/is/a/very/long/route/<<name>>/<<age>>//this/is/a/very/long//route/<<name>>/<<age>>/",
+			"/that/is/a//very/long/d/<<name>>/<<age>>/this/is/a//very/long/route/<<name>>/<<age>>//this/is/a/very/long/route/<<name>>/<<age>>//this/is/a/very/long//route/<<name>>/<<age>>/",
+			"/that/is/a//very/long/e/<<name>>/<<age>>/this/is/a//very/long/route/<<name>>/<<age>>//this/is/a/very/long/route/<<name>>/<<age>>//this/is/a/very/long//route/<<name>>/<<age>>/",
+			"/that/is/was//very/long/a/<<name>>/<<age>>/this/is/a//very/long/route/<<name>>/<<age>>//this/is/a/very/long/route/<<name>>/<<age>>//this/is/a/very/long//route/<<name>>/<<age>>/",
+			"/that/is/were//very/long/b/<<name>>/<<age>>/this/is/a//very/long/route/<<name>>/<<age>>//this/is/a/very/long/route/<<name>>/<<age>>//this/is/a/very/long//route/<<name>>/<<age>>/",
+			"/that/is/how//very/long/c/<<name>>/<<age>>/this/is/a//very/long/route/<<name>>/<<age>>//this/is/a/very/long/route/<<name>>/<<age>>//this/is/a/very/long//route/<<name>>/<<age>>/",
+			"/that/is/when//very/long/d/<<name>>/<<age>>/this/is/a//very/long/route/<<name>>/<<age>>//this/is/a/very/long/route/<<name>>/<<age>>//this/is/a/very/long//route/<<name>>/<<age>>/",
+			"/that/is/why//very/long/e/<<name>>/<<age>>/this/is/a//very/long/route/<<name>>/<<age>>//this/is/a/very/long/route/<<name>>/<<age>>//this/is/a/very/long//route/<<name>>/<<age>>/",
+			"/*",
 		},
 		routes_to_be_checked: []string{
 			"/",
@@ -299,6 +331,17 @@ var testBenchMarks = []testBenchMark{
 			"/hello/world/john/20/",
 			"/hello/world/john/20/hello/world/",
 			"/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+			"/that/is/a/very/long/a/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+			"/that/is/a/very/long/b/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+			"/that/is/a/very/long/c/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+			"/that/is/a/very/long/d/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+			"/that/is/a/very/long/e/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+			"/that/is/a/very/long/f/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+			"/that/is/was/very/long/a/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+			"/that/is/were/very/long/b/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+			"/that/is/how/very/long/c/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+			"/that/is/when/very/long/d/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+			"/that/is/why/very/long/e/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
 		},
 	},
 }
@@ -307,19 +350,39 @@ func BenchmarkMatch(b *testing.B) {
 	b.StopTimer()
 	for _, test := range testBenchMarks {
 		for _, route := range test.routes_to_be_registered {
-			test.router.Handle(mux.GET, route, mux.NewHandler(func(responsewriter http.ResponseWriter, request *http.Request) {}))
+
+			var split = strings.Split(route, mux.URL_DELIM+mux.URL_DELIM)
+			if len(split) == 1 {
+				test.router.Handle(mux.GET, route, mux.NewHandler(func(responsewriter http.ResponseWriter, request *http.Request) {}))
+				continue
+			}
+
+			var curr *mux.Route
+			for i, part := range split {
+				strings.TrimPrefix(part, mux.URL_DELIM)
+				if !strings.HasSuffix(part, mux.URL_DELIM) {
+					part = part + mux.URL_DELIM
+				}
+
+				if i == 0 {
+					curr = test.router.Handle(mux.GET, part, mux.NewHandler(func(responsewriter http.ResponseWriter, request *http.Request) {}))
+				} else {
+					curr = curr.Handle(mux.GET, part, mux.NewHandler(func(responsewriter http.ResponseWriter, request *http.Request) {}))
+				}
+			}
 		}
+
 		for _, route := range test.routes_to_be_checked {
-			b.StartTimer()
-			b.Run("Match-"+strconv.Itoa(len(strings.Split(route, mux.URL_DELIM))), func(b *testing.B) {
+			b.Run("Match-"+route, func(b *testing.B) {
 				for i := 0; i < b.N; i++ {
 					var match, _ = test.router.Match(mux.ANY, route)
 					if match == nil {
-						b.Errorf("Expected %v, got %v: %s", true, match, route)
+						b.Fatalf("Expected %v, got %v: %s", true, match, route)
 					}
 				}
 			})
-			b.StopTimer()
+
+			b.Log("Matched ", route)
 		}
 	}
 }

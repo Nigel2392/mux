@@ -119,61 +119,64 @@ func routeMatched(matched bool, method string, route *Route) bool {
 	return matched && (route.Method == ANY || route.Method == method || method == ANY) && route.Handler != nil
 }
 
+// Route.Match tries to match this route (from the beginning of the path)
+// and, on partial match, descends into children carrying the "from" index.
 func (r *Route) Match(method string, path []string) (*Route, bool, Variables) {
-	ok, vars := r.Path.Match(path)
+	ok, from, vars := r.Path.Match(path, 0)
+	if from == -1 {
+		return nil, false, nil
+	}
+
+	// Full match at this level AND method matches -> return this route.
 	if routeMatched(ok, method, r) {
 		return r, true, vars
 	}
 
+	// Partial: explore children from `from`.
 	for _, child := range r.Children {
-		var rt, matched, variables = child.Match(method, path)
-		if routeMatched(matched, method, rt) {
-			return rt, matched, variables
+		if rt, matched, v := child.matchFrom(method, path, from, vars); routeMatched(matched, method, rt) {
+			return rt, matched, v
 		}
 	}
 
 	return nil, false, nil
 }
 
-//func (r *Route) Match(method string, path []string) (*Route, bool, Variables) {
-//	ok, matchFrom, vars := r.Path.Match(path, 0)
-//	if matchFrom == -1 {
-//		return nil, false, nil
-//	}
-//
-//	if routeMatched(ok, method, r) {
-//		return r, true, vars
-//	}
-//
-//	for _, child := range r.Children {
-//		var rt, matched, variables = child.matchFrom(method, path, matchFrom)
-//		if routeMatched(matched, method, rt) {
-//			return rt, matched, variables
-//		}
-//	}
-//
-//	return nil, false, nil
-//}
-//
-//func (r *Route) matchFrom(method string, path []string, matchFrom int) (*Route, bool, Variables) {
-//	matched, matchFrom, variables := r.Path.Match(path, matchFrom)
-//	if matchFrom == -1 {
-//		return nil, false, nil
-//	}
-//
-//	if routeMatched(matched, method, r) {
-//		return r, matched, variables
-//	}
-//
-//	for _, child := range r.Children {
-//		var rt, matched, variables = child.matchFrom(method, path, matchFrom)
-//		if routeMatched(matched, method, rt) {
-//			return rt, matched, variables
-//		}
-//	}
-//
-//	return nil, false, nil
-//}
+// matchFrom continues matching a child route starting at `matchFrom`.
+// `inherited` carries variables already captured by ancestors.
+func (r *Route) matchFrom(method string, path []string, matchFrom int, inherited Variables) (*Route, bool, Variables) {
+	// Start with a shallow copy of inherited vars so siblings don't mutate each other.
+	var vars = make(Variables, len(inherited))
+	for k, v := range inherited {
+		// copy slice to avoid accidental sharing if later appended
+		cp := append([]string(nil), v...)
+		vars[k] = cp
+	}
+
+	matchedHere, nextFrom, local := r.Path.Match(path, matchFrom)
+	if nextFrom == -1 {
+		return nil, false, nil
+	}
+
+	// Merge local vars into vars
+	for k, v := range local {
+		vars[k] = append(vars[k], v...)
+	}
+
+	// Full path satisfied here?
+	if routeMatched(matchedHere, method, r) {
+		return r, true, vars
+	}
+
+	// Otherwise keep descending.
+	for _, child := range r.Children {
+		if rt, matched, v := child.matchFrom(method, path, nextFrom, vars); routeMatched(matched, method, rt) {
+			return rt, matched, v
+		}
+	}
+
+	return nil, false, nil
+}
 
 func randInt64() int64 {
 	var n, _ = rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
