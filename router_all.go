@@ -83,10 +83,25 @@ func (r *Mux) NotFound(w http.ResponseWriter, req *http.Request) {
 
 func (r *Mux) Match(method string, path string) (*Route, Variables) {
 	var parts = SplitPath(path)
+	var vars = make(Variables)
 	for _, route := range r.routes {
-		var rt, matched, variables = route.Match(method, parts)
-		if matched {
-			return rt, variables
+		if len(vars) > 0 {
+			vars = make(Variables)
+		}
+
+		ok, from := route.Path.Match(parts, 0, vars)
+		if from == -1 {
+			continue
+		}
+
+		// Full match at this level AND method matches -> return this route.
+		if routeMatched(ok, method, route) {
+			return route, vars
+		}
+
+		// Partial: explore children from `from`.
+		if rt, matched, v := route.matchFrom(method, parts, 0, vars); routeMatched(matched, method, rt) {
+			return rt, v
 		}
 	}
 	return nil, nil

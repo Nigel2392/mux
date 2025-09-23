@@ -19,6 +19,9 @@ func init() {
 	route = route.Handle(mux.GET, "/world/", mux.NewHandler(helloworld), "world")
 	route = route.Handle(mux.GET, "/<<name>>/", mux.NewHandler(helloworldname), "named")
 	route.Handle(mux.GET, "/<<age>>/asd/*/", mux.NewHandler(helloworldnameageglob), "gobbed")
+	route = route.Handle(mux.GET, "/<<name>>/<<name>>/", mux.NewHandler(helloworldname), "named")
+	route.Handle(mux.GET, "/<<name>>/<<name>>/named", mux.NewHandler(helloworldname), "named")
+	route.Handle(mux.GET, "/<<name>>/<<age>>/notnamed", mux.NewHandler(helloworldnameage), "named")
 	rt.Handle(mux.GET, "/*", mux.NewHandler(index), "catchall")
 }
 
@@ -95,8 +98,24 @@ func TestRouter(t *testing.T) {
 			expected: "helloworldname: [john]",
 		},
 		{
+			path:     "/hello/world/john/jane/jerry/",
+			expected: "helloworldname: [john jane jerry]",
+		},
+		{
+			path:     "/hello/world/john/jane/jerry/jane/jerry/named",
+			expected: "helloworldname: [john jane jerry jane jerry]",
+		},
+		{
+			path:     "/hello/world/john/bob/jerry/jane/20/notnamed",
+			expected: "helloworldnameage: [john bob jerry jane], [20]",
+		},
+		{
 			path:     "/hello/world/john/23/",
 			expected: "helloworldnameage: [john], [23]",
+		},
+		{
+			path:     "/hello/world/john/23/asd/abc",
+			expected: "helloworldnameageglob: [john], [23], [abc]",
 		},
 		{
 			path:     "/hello/world/john/23/asd/this/is/a/glob/",
@@ -110,7 +129,6 @@ func TestRouter(t *testing.T) {
 		rt.ServeHTTP(&w, req)
 		if w.String() != test.expected {
 			t.Errorf("Expected %s, got %s", test.expected, w.String())
-			return
 		}
 		t.Logf("%s ---> %s", test.path, w.String())
 	}

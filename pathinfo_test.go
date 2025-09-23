@@ -142,7 +142,8 @@ func matchChain(chain []*mux.PathInfo, split []string) (bool, int, mux.Variables
 	idx := 0
 	var all mux.Variables
 	for _, pi := range chain {
-		ok, next, vars := pi.Match(split, idx)
+		var vars = make(mux.Variables)
+		ok, next := pi.Match(split, idx, vars)
 		if !ok && next == -1 {
 			return false, next, nil
 		}
@@ -294,7 +295,12 @@ func TestMatch(t *testing.T) {
 type testBenchMark struct {
 	router                  *mux.Mux
 	routes_to_be_registered []string
-	routes_to_be_checked    []string
+	routes_to_be_checked    []testBenchmarkRoute
+}
+
+type testBenchmarkRoute struct {
+	route string
+	vars  map[string][]string
 }
 
 var testBenchMarks = []testBenchMark{
@@ -321,27 +327,87 @@ var testBenchMarks = []testBenchMark{
 			"/that/is/why//very/long/e/<<name>>/<<age>>/this/is/a//very/long/route/<<name>>/<<age>>//this/is/a/very/long/route/<<name>>/<<age>>//this/is/a/very/long//route/<<name>>/<<age>>/",
 			"/*",
 		},
-		routes_to_be_checked: []string{
-			"/",
-			"/",
-			"/asd",
-			"/hello/",
-			"/hello/world/",
-			"/hello/world/john/",
-			"/hello/world/john/20/",
-			"/hello/world/john/20/hello/world/",
-			"/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
-			"/that/is/a/very/long/a/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
-			"/that/is/a/very/long/b/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
-			"/that/is/a/very/long/c/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
-			"/that/is/a/very/long/d/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
-			"/that/is/a/very/long/e/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
-			"/that/is/a/very/long/f/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
-			"/that/is/was/very/long/a/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
-			"/that/is/were/very/long/b/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
-			"/that/is/how/very/long/c/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
-			"/that/is/when/very/long/d/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
-			"/that/is/why/very/long/e/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+		routes_to_be_checked: []testBenchmarkRoute{
+			{
+				route: "/",
+				vars:  nil,
+			},
+			{
+				route: "/",
+				vars:  nil,
+			},
+			{
+				route: "/asd",
+				vars:  mux.Variables{mux.GLOB: {"asd"}},
+			},
+			{
+				route: "/hello/",
+				vars:  nil,
+			},
+			{
+				route: "/hello/world/",
+				vars:  nil,
+			},
+			{
+				route: "/hello/world/john/",
+				vars:  mux.Variables{"name": {"john"}},
+			},
+			{
+				route: "/hello/world/john/20/",
+				vars:  mux.Variables{"name": {"john"}, "age": {"20"}},
+			},
+			{
+				route: "/hello/world/john/20/hello/world/",
+				vars:  mux.Variables{"name": {"john"}, "age": {"20"}, mux.GLOB: {"hello", "world"}},
+			},
+			{
+				route: "/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+				vars:  mux.Variables{"name": {"john", "john", "john", "john"}, "age": {"20", "20", "20", "20"}},
+			},
+			{
+				route: "/that/is/a/very/long/a/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+				vars:  mux.Variables{"name": {"john", "john", "john", "john"}, "age": {"20", "20", "20", "20"}},
+			},
+			{
+				route: "/that/is/a/very/long/b/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+				vars:  mux.Variables{"name": {"john", "john", "john", "john"}, "age": {"20", "20", "20", "20"}},
+			},
+			{
+				route: "/that/is/a/very/long/c/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+				vars:  mux.Variables{"name": {"john", "john", "john", "john"}, "age": {"20", "20", "20", "20"}},
+			},
+			{
+				route: "/that/is/a/very/long/d/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+				vars:  mux.Variables{"name": {"john", "john", "john", "john"}, "age": {"20", "20", "20", "20"}},
+			},
+			{
+				route: "/that/is/a/very/long/e/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+				vars:  mux.Variables{"name": {"john", "john", "john", "john"}, "age": {"20", "20", "20", "20"}},
+			},
+			{
+				route: "/that/is/a/very/long/f/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+				vars:  mux.Variables{mux.GLOB: {"that", "is", "a", "very", "long", "f", "john", "20", "this", "is", "a", "very", "long", "route", "john", "20", "this", "is", "a", "very", "long", "route", "john", "20", "this", "is", "a", "very", "long", "route", "john", "20"}},
+			},
+			{
+				route: "/that/is/was/very/long/a/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+				vars:  mux.Variables{"name": {"john", "john", "john", "john"}, "age": {"20", "20", "20", "20"}},
+			},
+			{
+				route: "/that/is/were/very/long/b/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+				vars:  mux.Variables{"name": {"john", "john", "john", "john"}, "age": {"20", "20", "20", "20"}},
+			},
+			{
+				route: "/that/is/how/very/long/c/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+				vars:  mux.Variables{"name": {"john", "john", "john", "john"}, "age": {"20", "20", "20", "20"}},
+			},
+			{
+				route: "/that/is/when/very/long/d/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+				vars:  mux.Variables{"name": {"john", "john", "john", "john"}, "age": {"20", "20", "20", "20"}},
+			},
+			{
+				route: "/that/is/why/very/long/e/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/this/is/a/very/long/route/john/20/",
+				vars:  mux.Variables{"name": {"john", "john", "john", "john"}, "age": {"20", "20", "20", "20"}},
+			},
 		},
 	},
 }
@@ -373,11 +439,28 @@ func BenchmarkMatch(b *testing.B) {
 		}
 
 		for _, route := range test.routes_to_be_checked {
-			b.Run("Match-"+route, func(b *testing.B) {
+			b.Run("Match-"+route.route, func(b *testing.B) {
+				b.ResetTimer()
+
 				for i := 0; i < b.N; i++ {
-					var match, _ = test.router.Match(mux.ANY, route)
+					var match, vars = test.router.Match(mux.ANY, route.route)
 					if match == nil {
 						b.Fatalf("Expected %v, got %v: %s", true, match, route)
+					}
+
+					if len(route.vars) != len(vars) {
+						b.Fatalf("Expected %v, got %v: %s", len(route.vars), len(vars), route)
+					}
+
+					for k, v := range route.vars {
+						if len(v) != len(vars[k]) {
+							b.Fatalf("Expected %v, got %v: %s", len(v), len(vars[k]), route)
+						}
+						for i, val := range v {
+							if val != vars[k][i] {
+								b.Fatalf("Expected %v, got %v: %s", v[i], val, route)
+							}
+						}
 					}
 				}
 			})

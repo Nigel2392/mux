@@ -2,6 +2,7 @@ package mux
 
 import (
 	"crypto/rand"
+	"maps"
 	"math"
 	"math/big"
 	"strings"
@@ -122,7 +123,8 @@ func routeMatched(matched bool, method string, route *Route) bool {
 // Route.Match tries to match this route (from the beginning of the path)
 // and, on partial match, descends into children carrying the "from" index.
 func (r *Route) Match(method string, path []string) (*Route, bool, Variables) {
-	ok, from, vars := r.Path.Match(path, 0)
+	var vars = make(Variables)
+	ok, from := r.Path.Match(path, 0, vars)
 	if from == -1 {
 		return nil, false, nil
 	}
@@ -145,15 +147,12 @@ func (r *Route) Match(method string, path []string) (*Route, bool, Variables) {
 // matchFrom continues matching a child route starting at `matchFrom`.
 // `inherited` carries variables already captured by ancestors.
 func (r *Route) matchFrom(method string, path []string, matchFrom int, vars Variables) (*Route, bool, Variables) {
+	vars = maps.Clone(vars)
+
 	// Start with a shallow copy of inherited vars so siblings don't mutate each other.
-	matchedHere, nextFrom, local := r.Path.Match(path, matchFrom)
+	matchedHere, nextFrom := r.Path.Match(path, matchFrom, vars)
 	if nextFrom == -1 {
 		return nil, false, nil
-	}
-
-	// Merge local vars into vars
-	for k, v := range local {
-		vars[k] = append(vars[k], v...)
 	}
 
 	// Full path satisfied here?

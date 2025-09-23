@@ -2,6 +2,7 @@ package mux
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 )
@@ -105,11 +106,8 @@ type PathPart struct {
 // It returns whether the path matched, and the variables in the path.
 //
 // If the path does not match, the variables will be nil.
-func (p *PathInfo) Match(path []string, from int) (matched bool, nextFrom int, vars Variables) {
-	var (
-		variables = make(Variables)
-		i         = from
-	)
+func (p *PathInfo) Match(path []string, from int, variables Variables) (matched bool, nextFrom int) {
+	var i = from
 
 	// Match each part defined on this PathInfo only (no parent traversal here).
 	for idx, part := range p.Path {
@@ -119,9 +117,10 @@ func (p *PathInfo) Match(path []string, from int) (matched bool, nextFrom int, v
 				// If you have a resolver, delegate the remainder
 				ok, v := p.Resolver.Match(variables, path[i:])
 				if !ok {
-					return false, -1, nil
+					return false, -1
 				}
-				return ok, len(path), v
+				maps.Copy(variables, v)
+				return ok, len(path)
 			} else {
 				// Capture the remainder as GLOB
 				variables[GLOB] = append(variables[GLOB], path[i:]...)
@@ -133,7 +132,7 @@ func (p *PathInfo) Match(path []string, from int) (matched bool, nextFrom int, v
 			// treat as full since it's terminal by contract.
 			if idx != len(p.Path)-1 {
 				// defensive: refuse unexpected extra parts after a glob
-				return false, -1, nil
+				return false, -1
 			}
 			break
 		}
@@ -142,20 +141,20 @@ func (p *PathInfo) Match(path []string, from int) (matched bool, nextFrom int, v
 		if i >= len(path) {
 			// Not enough segments -> not even a partial for children,
 			// because the parent hasn't matched its own pattern fully.
-			return false, -1, nil
+			return false, -1
 		}
 
 		seg := path[i]
 		switch {
 		case part.IsVariable:
 			if seg == "" {
-				return false, -1, nil
+				return false, -1
 			}
 			variables[part.Part] = append(variables[part.Part], seg)
 		default:
 			// literal
 			if part.Part != seg {
-				return false, -1, nil
+				return false, -1
 			}
 		}
 		i++
@@ -164,11 +163,11 @@ func (p *PathInfo) Match(path []string, from int) (matched bool, nextFrom int, v
 	// At this point, this PathInfo has fully matched its own pattern.
 	// If we consumed the whole path (or a glob consumed the rest), it's a full match.
 	if i == len(path) {
-		return true, i, variables
+		return true, i
 	}
 
 	// Otherwise, it's a partial match: children should continue from i.
-	return false, i, variables
+	return false, i
 }
 
 // Reverse returns the path with the variables replaced.
