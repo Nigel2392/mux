@@ -120,18 +120,60 @@ func routeMatched(matched bool, method string, route *Route) bool {
 }
 
 func (r *Route) Match(method string, path []string) (*Route, bool, Variables) {
-	var matched, variables = r.Path.Match(path)
-	if routeMatched(matched, method, r) {
-		return r, matched, variables
+	ok, vars := r.Path.Match(path)
+	if routeMatched(ok, method, r) {
+		return r, true, vars
 	}
+
 	for _, child := range r.Children {
 		var rt, matched, variables = child.Match(method, path)
 		if routeMatched(matched, method, rt) {
 			return rt, matched, variables
 		}
 	}
+
 	return nil, false, nil
 }
+
+//func (r *Route) Match(method string, path []string) (*Route, bool, Variables) {
+//	ok, matchFrom, vars := r.Path.Match(path, 0)
+//	if matchFrom == -1 {
+//		return nil, false, nil
+//	}
+//
+//	if routeMatched(ok, method, r) {
+//		return r, true, vars
+//	}
+//
+//	for _, child := range r.Children {
+//		var rt, matched, variables = child.matchFrom(method, path, matchFrom)
+//		if routeMatched(matched, method, rt) {
+//			return rt, matched, variables
+//		}
+//	}
+//
+//	return nil, false, nil
+//}
+//
+//func (r *Route) matchFrom(method string, path []string, matchFrom int) (*Route, bool, Variables) {
+//	matched, matchFrom, variables := r.Path.Match(path, matchFrom)
+//	if matchFrom == -1 {
+//		return nil, false, nil
+//	}
+//
+//	if routeMatched(matched, method, r) {
+//		return r, matched, variables
+//	}
+//
+//	for _, child := range r.Children {
+//		var rt, matched, variables = child.matchFrom(method, path, matchFrom)
+//		if routeMatched(matched, method, rt) {
+//			return rt, matched, variables
+//		}
+//	}
+//
+//	return nil, false, nil
+//}
 
 func randInt64() int64 {
 	var n, _ = rand.Int(rand.Reader, big.NewInt(math.MaxInt64))

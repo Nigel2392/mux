@@ -106,6 +106,7 @@ func TestRouter(t *testing.T) {
 	for _, test := range tests {
 		var req, _ = http.NewRequest("GET", test.path, nil)
 		var w = response_writer{}
+		w.headers = make(http.Header)
 		rt.ServeHTTP(&w, req)
 		if w.String() != test.expected {
 			t.Errorf("Expected %s, got %s", test.expected, w.String())
@@ -171,27 +172,27 @@ var reverseTests = []reverseTest{
 	{
 		name:     "hello",
 		args:     nil,
-		expected: "/hello",
+		expected: "/hello/",
 	},
 	{
 		name:     "hello:world",
 		args:     nil,
-		expected: "/hello/world",
+		expected: "/hello/world/",
 	},
 	{
 		name:     "hello:world:named",
 		args:     []interface{}{"john"},
-		expected: "/hello/world/john",
+		expected: "/hello/world/john/",
 	},
 	{
 		name:     "numbered",
 		args:     []interface{}{"john", 20},
-		expected: "/hello/world/john/20",
+		expected: "/hello/world/john/20/",
 	},
 	{
 		name:     "hello:world:named:gobbed",
 		args:     []interface{}{"john", 20, "hello/world"},
-		expected: "/hello/world/john/20/asd/hello/world/",
+		expected: "/hello/world/john/20/asd/hello/world",
 	},
 }
 
@@ -236,7 +237,9 @@ func TestMuxNamespace(t *testing.T) {
 	}), "root")
 
 	var req, _ = http.NewRequest("GET", "/hello", nil)
-	var w = response_writer{}
+	var w = response_writer{
+		headers: make(http.Header),
+	}
 	m.ServeHTTP(&w, req)
 
 	if w.String() != "Hello from namespace: namespace:hello" {

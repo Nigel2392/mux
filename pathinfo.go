@@ -2,6 +2,7 @@ package mux
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -34,8 +35,22 @@ type Resolver interface {
 // It can be used to match a path, and retrieve variables from it.
 type PathInfo struct {
 	IsGlob   bool
+	Parent   *PathInfo
 	Path     []*PathPart
 	Resolver Resolver
+}
+
+// WithParent returns a new PathInfo with the given parent.
+func (p *PathInfo) WithParent(parent *PathInfo) *PathInfo {
+	if parent == nil {
+		return p
+	}
+	return &PathInfo{
+		IsGlob:   p.IsGlob,
+		Parent:   parent,
+		Path:     p.Path,
+		Resolver: p.Resolver,
+	}
 }
 
 // String returns a string representation of the path.
@@ -49,6 +64,11 @@ func (p *PathInfo) String() string {
 			totalLen += delimLen
 		}
 	}
+
+	if p.Parent != nil {
+		b.WriteString(p.Parent.String())
+	}
+
 	b.Grow(totalLen)
 	b.WriteString(URL_DELIM)
 	for i, part := range p.Path {
@@ -63,36 +83,8 @@ func (p *PathInfo) String() string {
 			b.WriteString(URL_DELIM)
 		}
 	}
-	return b.String()
-}
 
-// Copies the slice, and append appends the other path to the end of this path.
-//
-// It will panic if the path on which this was called is a glob.
-func (p *PathInfo) CopyAppend(other *PathInfo) *PathInfo {
-	if p.IsGlob {
-		panic("cannot append to a glob path")
-	}
-	var path = &PathInfo{
-		IsGlob: other.IsGlob,
-		Path:   make([]*PathPart, len(p.Path)+len(other.Path)),
-	}
-	copy(path.Path, p.Path)
-	copy(path.Path[len(p.Path):], other.Path)
-	//	var i = 0
-	//	for {
-	//		if i >= len(p.Path)+len(other.Path) {
-	//			break
-	//		}
-	//		var part PathPart
-	//		if i < len(p.Path) {
-	//			part = *p.Path[i]
-	//		} else {
-	//			part = *other.Path[i-len(p.Path)]
-	//		}
-	//		path.Path[i] = &part
-	//	}
-	return path
+	return b.String()
 }
 
 // PathPart contains information about a part of a path.
@@ -108,30 +100,55 @@ type PathPart struct {
 // It returns whether the path matched, and the variables in the path.
 //
 // If the path does not match, the variables will be nil.
-func (p *PathInfo) Match(path []string) (bool, Variables) {
-	// Glob only allows for more parts, not less
-	if len(path) < len(p.Path) || (len(path) != len(p.Path) && !p.IsGlob) {
+func (p *PathInfo) Match(path []string) (matched bool, vars Variables) {
+
+	var (
+		variables = make(Variables)
+		pathParts = make([]*PathPart, 0, len(p.Path))
+	)
+	for pt := p; pt != nil; pt = pt.Parent {
+		pathParts = append(pt.Path, pathParts...)
+	}
+
+	if len(path) > len(pathParts) && !p.IsGlob {
 		return false, nil
 	}
-	var variables = make(Variables)
-	for i, part := range p.Path {
-		if part.IsVariable {
-			var pathPart = path[i]
+
+	// Glob only allows for more parts, not less
+	if len(path) < len(pathParts) && (len(path) != len(pathParts)-1 && !p.IsGlob) {
+		return false, nil
+	}
+
+	for i, part := range pathParts {
+		if part.IsGlob && i >= len(path) {
+			variables[GLOB] = []string{}
+			return true, variables
+		}
+
+		if i >= len(path) {
+			return false, nil
+		}
+
+		var pathPart = path[i]
+		switch {
+		case part.IsVariable:
 			if pathPart == "" {
 				return false, nil
 			}
 			variables[part.Part] = append(variables[part.Part], pathPart)
-		} else if part.Part != path[i] && part.IsGlob {
 
+		case part.Part != pathPart && part.IsGlob:
 			if p.Resolver != nil {
 				return p.Resolver.Match(variables, path[i:])
 			}
 
 			variables[GLOB] = append(variables[GLOB], path[i:]...)
-		} else if part.Part != path[i] {
+
+		case part.Part != pathPart:
 			return false, nil
 		}
 	}
+
 	return true, variables
 }
 
@@ -139,39 +156,60 @@ func (p *PathInfo) Match(path []string) (bool, Variables) {
 //
 // If a variable is not found, this function will error.
 func (p *PathInfo) Reverse(variables ...interface{}) (string, error) {
-	var b strings.Builder
-	var varIndex = 0
+	var (
+		b          strings.Builder
+		varIndex   int
+		seenParts  int
+		totalParts int
+	)
+
+	// create path slice
+	var path = make([]*PathInfo, 0)
+	for pt := p; pt != nil; pt = pt.Parent {
+		path = append(path, pt)
+		totalParts += len(pt.Path)
+	}
+
+	// reverse the path slice
+	slices.Reverse(path)
+
 	b.WriteString(URL_DELIM)
-	for i, part := range p.Path {
-		if part.IsGlob && len(variables) >= varIndex {
 
-			// The resolver can take over when it is a GLOB
-			if p.Resolver != nil {
-				return p.Resolver.Reverse(b.String(), variables[varIndex:]...)
-			}
+	for pathIndex, pathObject := range path {
 
-			for j, v := range variables[varIndex:] {
-				b.WriteString(fmt.Sprint(v))
+		for _, part := range pathObject.Path {
+			seenParts++
 
-				if j+i < len(p.Path)-1 {
-					b.WriteString(URL_DELIM)
+			if part.IsGlob && len(variables) >= varIndex && pathIndex == len(path)-1 {
+				// The resolver can take over when it is a GLOB
+				if pathObject.Resolver != nil && pathIndex == len(path)-1 {
+					return pathObject.Resolver.Reverse(b.String(), variables[varIndex:]...)
 				}
+
+				for _, v := range variables[varIndex:] {
+					varIndex++
+
+					b.WriteString(fmt.Sprint(v))
+
+					if varIndex < len(variables) {
+						b.WriteString(URL_DELIM)
+					}
+				}
+
+				break
 			}
-			break
-		}
 
-		if part.IsVariable && varIndex >= len(variables) {
-			return "", ErrNotEnoughVariables
-		}
+			if part.IsVariable && varIndex >= len(variables) {
+				return "", ErrNotEnoughVariables
+			}
 
-		if part.IsVariable {
-			b.WriteString(fmt.Sprint(variables[varIndex]))
-			varIndex++
-		} else {
-			b.WriteString(part.Part)
-		}
+			if part.IsVariable {
+				b.WriteString(fmt.Sprint(variables[varIndex]))
+				varIndex++
+			} else {
+				b.WriteString(part.Part)
+			}
 
-		if i < len(p.Path)-1 {
 			b.WriteString(URL_DELIM)
 		}
 	}

@@ -134,8 +134,6 @@ type matchTest struct {
 
 	pathToMatch string
 
-	info *mux.PathInfo
-
 	data map[string][]string
 
 	ExpectedMatched bool
@@ -146,64 +144,101 @@ func TestMatch(t *testing.T) {
 		{
 			path:            "/",
 			pathToMatch:     "/",
-			info:            mux.NewPathInfo(nil, "/"),
 			ExpectedMatched: true,
 		},
 		{
 			path:            "/*",
 			pathToMatch:     "/asd",
-			info:            mux.NewPathInfo(nil, "/*"),
 			ExpectedMatched: true,
 		},
 		{
 			path:            "/hello",
 			pathToMatch:     "/hello",
-			info:            mux.NewPathInfo(nil, "/hello"),
 			ExpectedMatched: true,
 		},
 		{
 			path:            "/hello",
 			pathToMatch:     "/hello/",
-			info:            mux.NewPathInfo(nil, "/hello"),
 			ExpectedMatched: true,
 		},
 		{
 			path:            "/hello",
 			pathToMatch:     "/hello/world",
-			info:            mux.NewPathInfo(nil, "/hello"),
 			ExpectedMatched: false,
 		},
 		{
 			path:            "/hello/world/",
 			pathToMatch:     "/hello/world",
-			info:            mux.NewPathInfo(nil, "/hello/world/"),
 			ExpectedMatched: true,
 		},
 		{
 			path:            "/hello/world/<<name>>",
 			pathToMatch:     "/hello/world/john",
-			info:            mux.NewPathInfo(nil, "/hello/world/<<name>>"),
+			ExpectedMatched: true,
+		},
+		{
+			path:            "/hello//world/<<name>>",
+			pathToMatch:     "/hello/world/john",
+			ExpectedMatched: true,
+		},
+		{
+			path:            "/hello//world/<<name>>//<<age>>",
+			pathToMatch:     "/hello/world/john/20",
+			ExpectedMatched: true,
+		},
+		{
+			path:            "/hello//world/<<name>>//<<age>>",
+			pathToMatch:     "/hello/world/john",
+			ExpectedMatched: false,
+		},
+		{
+			path:            "/hello/world/<<name>>//*/",
+			pathToMatch:     "/hello/world/john/",
+			ExpectedMatched: true,
+		},
+		{
+			path:            "/hello/world/<<name>>//*/",
+			pathToMatch:     "/hello/world/john/hello/world",
 			ExpectedMatched: true,
 		},
 		{
 			path:            "/hello/world/<<name>>/*/",
 			pathToMatch:     "/hello/world/john/hello/world",
-			info:            mux.NewPathInfo(nil, "/hello/world/<<name>>/*/"),
 			ExpectedMatched: true,
 		},
 		{
 			path:            "/hello/world/<<name>>/*",
 			pathToMatch:     "/hello/world/john/hello/world/my/world",
-			info:            mux.NewPathInfo(nil, "/hello/world/<<name>>/*"),
 			data:            map[string][]string{"name": {"john"}, mux.GLOB: {"hello", "world", "my", "world"}},
 			ExpectedMatched: true,
 		},
 	}
 	for _, test := range matchTests {
-		var matched, vars = test.info.Match(mux.SplitPath(test.pathToMatch))
+		var chain = strings.Split(test.path, mux.URL_DELIM+mux.URL_DELIM)
+		var paths = make([]*mux.PathInfo, len(chain))
+		for i, part := range chain {
+			if !strings.HasPrefix(part, mux.URL_DELIM) {
+				part = mux.URL_DELIM + part
+			}
+			if !strings.HasSuffix(part, mux.URL_DELIM) {
+				part = part + mux.URL_DELIM
+			}
+			paths[i] = mux.NewPathInfo(nil, part)
+		}
+
+		for i := len(paths) - 1; i >= 0; i-- {
+			if i > 0 {
+				paths[i].Parent = paths[i-1]
+			}
+		}
+
+		var info = paths[len(paths)-1]
+		var split = mux.SplitPath(test.pathToMatch)
+		var matched, vars = info.Match(split)
+
 		if matched != test.ExpectedMatched {
-			t.Errorf("Expected %v, got %v: %s != %s", test.ExpectedMatched, matched, test.path, test.pathToMatch)
-			t.Logf("%#v", test.info)
+			t.Errorf("Expected %v, got %v: %s != %s (%d)", test.ExpectedMatched, matched, test.path, test.pathToMatch, len(split))
+			t.Logf("%#v", info)
 		}
 
 		var expectedVars = make(mux.Variables)
@@ -232,7 +267,6 @@ func TestMatch(t *testing.T) {
 
 		t.Log(test.path, test.pathToMatch, test.ExpectedMatched, vars)
 	}
-
 }
 
 type testBenchMark struct {
@@ -306,37 +340,42 @@ func TestReverse(t *testing.T) {
 		{
 			name:     "/hello",
 			args:     nil,
-			expected: "/hello",
+			expected: "/hello/",
 		},
 		{
 			name:     "/hello/world",
 			args:     nil,
-			expected: "/hello/world",
+			expected: "/hello/world/",
 		},
 		{
 			name:     "/hello/world/<<name>>",
 			args:     []interface{}{"john"},
-			expected: "/hello/world/john",
+			expected: "/hello/world/john/",
 		},
 		{
 			name:     "/hello/world/<<name>>/<<age>>",
 			args:     []interface{}{"john", 20},
-			expected: "/hello/world/john/20",
+			expected: "/hello/world/john/20/",
 		},
 		{
 			name:     "/hello/world/<<name>>/<<age>>/*/",
 			args:     []interface{}{"john", 20, "hello/world"},
-			expected: "/hello/world/john/20/hello/world/",
+			expected: "/hello/world/john/20/hello/world",
 		},
 		{
 			name:     "/hello/world/<<name>>/*/",
 			args:     []interface{}{"john", 20, "hello/world"},
+			expected: "/hello/world/john/20/hello/world",
+		},
+		{
+			name:     "/hello/world/<<name>>/*/",
+			args:     []interface{}{"john", 20, "hello/world/"},
 			expected: "/hello/world/john/20/hello/world/",
 		},
 		{
 			name:     "/hello/world/<<name>>/*",
 			args:     []interface{}{"john", 20, "hello/world/my/world"},
-			expected: "/hello/world/john/20/hello/world/my/world/",
+			expected: "/hello/world/john/20/hello/world/my/world",
 		},
 		{
 			name:     "/hello/world/<<name>>/<<age>>/*/",
