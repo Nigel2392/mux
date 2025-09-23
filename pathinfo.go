@@ -121,10 +121,7 @@ func (p *PathInfo) Match(path []string, from int) (matched bool, nextFrom int, v
 				if !ok {
 					return false, -1, nil
 				}
-				// Merge returned vars into variables (keep slices additive)
-				for k, vs := range v {
-					variables[k] = append(variables[k], vs...)
-				}
+				return ok, len(path), v
 			} else {
 				// Capture the remainder as GLOB
 				variables[GLOB] = append(variables[GLOB], path[i:]...)

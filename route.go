@@ -144,15 +144,8 @@ func (r *Route) Match(method string, path []string) (*Route, bool, Variables) {
 
 // matchFrom continues matching a child route starting at `matchFrom`.
 // `inherited` carries variables already captured by ancestors.
-func (r *Route) matchFrom(method string, path []string, matchFrom int, inherited Variables) (*Route, bool, Variables) {
+func (r *Route) matchFrom(method string, path []string, matchFrom int, vars Variables) (*Route, bool, Variables) {
 	// Start with a shallow copy of inherited vars so siblings don't mutate each other.
-	var vars = make(Variables, len(inherited))
-	for k, v := range inherited {
-		// copy slice to avoid accidental sharing if later appended
-		cp := append([]string(nil), v...)
-		vars[k] = cp
-	}
-
 	matchedHere, nextFrom, local := r.Path.Match(path, matchFrom)
 	if nextFrom == -1 {
 		return nil, false, nil
