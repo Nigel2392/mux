@@ -10,11 +10,25 @@ import (
 // SplitPath splits a path into its parts.
 func SplitPath(path string) []string {
 	// path = strings.ToLower(path)
-	path = strings.Trim(path, URL_DELIM)
-	if path == "" {
+	var (
+		l = len(path)
+		s = 0
+		e = l
+	)
+	if l >= 1 && path[0] == '/' {
+		s = 1
+	}
+	if l > 1 && path[len(path)-1] == '/' {
+		e = l - 1
+	}
+	if s == e {
 		return []string{}
 	}
-	return strings.Split(path, URL_DELIM)
+
+	var chk = rune(URL_DELIM[0])
+	return strings.FieldsFunc(path[s:e], func(r rune) bool {
+		return r == chk
+	})
 }
 
 // Global variables for use in the package.
@@ -109,8 +123,8 @@ type PathPart struct {
 func (p *PathInfo) Match(path []string, from int, variables Variables) (matched bool, nextFrom int, vars Variables) {
 	var i = from
 
-	// Match each part defined on this PathInfo only (no parent traversal here).
-	for idx, part := range p.Path {
+	// Match each part defined on this PathInfo only, parent paths are matched by the caller.
+	for _, part := range p.Path {
 		// If this part is a terminal glob, it eats the rest (possibly zero)
 		if part.IsGlob {
 			if p.Resolver != nil {
@@ -132,19 +146,16 @@ func (p *PathInfo) Match(path []string, from int, variables Variables) (matched 
 			} else {
 				// Capture the remainder as GLOB
 				if variables == nil {
-					variables = make(Variables, 1)
+					variables = Variables{
+						GLOB: path[i:],
+					}
+				} else {
+					variables[GLOB] = path[i:]
 				}
-				variables[GLOB] = path[i:]
 			}
 			// Glob ends the pattern
 			i = len(path)
 
-			// If glob is not the last declared part (shouldn't happen if enforced elsewhere),
-			// treat as full since it's terminal by contract.
-			if idx != len(p.Path)-1 {
-				// defensive: refuse unexpected extra parts after a glob
-				return false, -1, nil
-			}
 			break
 		}
 
@@ -165,11 +176,8 @@ func (p *PathInfo) Match(path []string, from int, variables Variables) (matched 
 				variables = make(Variables)
 			}
 			variables[part.Part] = append(variables[part.Part], seg)
-		default:
-			// literal
-			if part.Part != seg {
-				return false, -1, nil
-			}
+		case part.Part != seg:
+			return false, -1, nil
 		}
 		i++
 	}
