@@ -106,7 +106,7 @@ type PathPart struct {
 // It returns whether the path matched, and the variables in the path.
 //
 // If the path does not match, the variables will be nil.
-func (p *PathInfo) Match(path []string, from int, variables Variables) (matched bool, nextFrom int) {
+func (p *PathInfo) Match(path []string, from int, variables Variables) (matched bool, nextFrom int, vars Variables) {
 	var i = from
 
 	// Match each part defined on this PathInfo only (no parent traversal here).
@@ -114,15 +114,26 @@ func (p *PathInfo) Match(path []string, from int, variables Variables) (matched 
 		// If this part is a terminal glob, it eats the rest (possibly zero)
 		if part.IsGlob {
 			if p.Resolver != nil {
+				var varsWasNil = variables == nil
+				if variables == nil {
+					variables = make(Variables)
+				}
 				// If you have a resolver, delegate the remainder
 				ok, v := p.Resolver.Match(variables, path[i:])
 				if !ok {
-					return false, -1
+					return false, -1, nil
 				}
-				maps.Copy(variables, v)
-				return ok, len(path)
+				if !varsWasNil {
+					maps.Copy(variables, v)
+				} else {
+					variables = v
+				}
+				return ok, len(path), variables
 			} else {
 				// Capture the remainder as GLOB
+				if variables == nil {
+					variables = make(Variables, 1)
+				}
 				variables[GLOB] = append(variables[GLOB], path[i:]...)
 			}
 			// Glob ends the pattern
@@ -132,7 +143,7 @@ func (p *PathInfo) Match(path []string, from int, variables Variables) (matched 
 			// treat as full since it's terminal by contract.
 			if idx != len(p.Path)-1 {
 				// defensive: refuse unexpected extra parts after a glob
-				return false, -1
+				return false, -1, nil
 			}
 			break
 		}
@@ -141,20 +152,23 @@ func (p *PathInfo) Match(path []string, from int, variables Variables) (matched 
 		if i >= len(path) {
 			// Not enough segments -> not even a partial for children,
 			// because the parent hasn't matched its own pattern fully.
-			return false, -1
+			return false, -1, nil
 		}
 
 		seg := path[i]
 		switch {
 		case part.IsVariable:
 			if seg == "" {
-				return false, -1
+				return false, -1, nil
+			}
+			if variables == nil {
+				variables = make(Variables)
 			}
 			variables[part.Part] = append(variables[part.Part], seg)
 		default:
 			// literal
 			if part.Part != seg {
-				return false, -1
+				return false, -1, nil
 			}
 		}
 		i++
@@ -163,11 +177,11 @@ func (p *PathInfo) Match(path []string, from int, variables Variables) (matched 
 	// At this point, this PathInfo has fully matched its own pattern.
 	// If we consumed the whole path (or a glob consumed the rest), it's a full match.
 	if i == len(path) {
-		return true, i
+		return true, i, variables
 	}
 
 	// Otherwise, it's a partial match: children should continue from i.
-	return false, i
+	return false, i, variables
 }
 
 // Reverse returns the path with the variables replaced.

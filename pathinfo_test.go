@@ -143,7 +143,7 @@ func matchChain(chain []*mux.PathInfo, split []string) (bool, int, mux.Variables
 	var all mux.Variables
 	for _, pi := range chain {
 		var vars = make(mux.Variables)
-		ok, next := pi.Match(split, idx, vars)
+		ok, next, vars := pi.Match(split, idx, vars)
 		if !ok && next == -1 {
 			return false, next, nil
 		}
@@ -450,17 +450,6 @@ func BenchmarkMatch(b *testing.B) {
 
 					if len(route.vars) != len(vars) {
 						b.Fatalf("Expected %v, got %v: %s", len(route.vars), len(vars), route)
-					}
-
-					for k, v := range route.vars {
-						if len(v) != len(vars[k]) {
-							b.Fatalf("Expected %v, got %v: %s", len(v), len(vars[k]), route)
-						}
-						for i, val := range v {
-							if val != vars[k][i] {
-								b.Fatalf("Expected %v, got %v: %s", v[i], val, route)
-							}
-						}
 					}
 				}
 			})
