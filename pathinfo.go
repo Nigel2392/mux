@@ -134,7 +134,7 @@ func (p *PathInfo) Match(path []string, from int, variables Variables) (matched 
 				if variables == nil {
 					variables = make(Variables, 1)
 				}
-				variables[GLOB] = append(variables[GLOB], path[i:]...)
+				variables[GLOB] = path[i:]
 			}
 			// Glob ends the pattern
 			i = len(path)

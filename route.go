@@ -146,7 +146,7 @@ func (r *Route) Match(method string, path []string) (*Route, bool, Variables) {
 // matchFrom continues matching a child route starting at `matchFrom`.
 // `inherited` carries variables already captured by ancestors.
 func (r *Route) matchFrom(method string, path []string, matchFrom int, vars Variables) (*Route, bool, Variables) {
-	if vars != nil {
+	if len(vars) > 0 {
 		vars = maps.Clone(vars)
 	}
 
