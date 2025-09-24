@@ -25,10 +25,7 @@ func SplitPath(path string) []string {
 		return []string{}
 	}
 
-	var chk = rune(URL_DELIM[0])
-	return strings.FieldsFunc(path[s:e], func(r rune) bool {
-		return r == chk
-	})
+	return strings.Split(path[s:e], URL_DELIM)
 }
 
 // Global variables for use in the package.
