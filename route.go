@@ -5,6 +5,7 @@ import (
 	"maps"
 	"math"
 	"math/big"
+	"slices"
 	"strings"
 )
 
@@ -65,6 +66,17 @@ func (r *Route) RunsMiddleware(b bool) {
 // String returns a string representation of the route.
 func (r *Route) String() string {
 	return r.Path.String()
+}
+
+func (r *Route) PathName() []string {
+	var curr = r
+	var parts []string = make([]string, 0)
+	for curr != nil {
+		parts = append(parts, curr.Name)
+		curr = curr.Parent
+	}
+	slices.Reverse(parts)
+	return parts
 }
 
 func (r *Route) Find(names []string) (*Route, bool) {

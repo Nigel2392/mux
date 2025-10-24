@@ -14,6 +14,8 @@ const (
 	HEAD    = "HEAD"    // Equivalent to http.MethodHead
 	PATCH   = "PATCH"   // Equivalent to http.MethodPatch
 	OPTIONS = "OPTIONS" // Equivalent to http.MethodOptions
+
+	NAME_SEPARATOR = ":"
 )
 
 // Middleware which will run before/after the HandleFunc.
@@ -42,7 +44,7 @@ func (r *Mux) ResetRoutes() {
 }
 
 func (r *Mux) Find(name string) *Route {
-	var nameparts = strings.Split(name, ":")
+	var nameparts = strings.Split(name, NAME_SEPARATOR)
 	for _, route := range r.routes {
 		var route, ok = route.Find(nameparts)
 		if ok {

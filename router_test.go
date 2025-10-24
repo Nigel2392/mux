@@ -231,6 +231,28 @@ func TestMuxReverse(t *testing.T) {
 
 const nsContextKey = "namespace"
 
+func TestRoutePathName(t *testing.T) {
+	var route = rt.Find("hello:world:named")
+	if route == nil {
+		t.Errorf("Expected to find route hello:world:named")
+		return
+	}
+	var pathNames = route.PathName()
+	var expected = []string{"hello", "world", "named"}
+	if len(pathNames) != len(expected) {
+		t.Errorf("Expected path names length %d, got %d", len(expected), len(pathNames))
+		return
+	}
+
+	for i, name := range pathNames {
+		if name != expected[i] {
+			t.Errorf("Expected path name %s at index %d, got %s", expected[i], i, name)
+			return
+		}
+		t.Logf("Path name at index %d: %s", i, name)
+	}
+}
+
 func TestMuxNamespace(t *testing.T) {
 	var m = mux.New()
 	var ns = m.Namespace(mux.NamespaceOptions{
