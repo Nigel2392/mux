@@ -19,7 +19,7 @@ const (
 )
 
 // Middleware which will run before/after the HandleFunc.
-type Middleware func(next Handler) Handler
+type Middleware = func(next Handler) Handler
 
 func New() *Mux {
 	return &Mux{}

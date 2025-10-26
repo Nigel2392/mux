@@ -47,12 +47,16 @@ func (r *Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	req = SetVariables(req, variables)
+	req = SetContextVars(req, variables)
 	req = req.WithContext(ContextWithRoute(
 		req.Context(), route,
 	))
 
-	var handler Handler = route
+	var handler Handler = route.Handler
+
+	if bindable, ok := route.Handler.(BindableHandler); ok {
+		handler = bindable.Bind(req, route, variables)
+	}
 
 	// Do not run middleware if disabled.
 	//lint:ignore S1002 Extra verbose to make it more clear.

@@ -128,6 +128,8 @@ func (r *Route) RemoveChild(child *Route) {
 }
 
 // Helper function to check if the route matches the method and path.
+// if the method provided is ANY, it does not care about the method defined on the route - the route method does not matter.
+// in contrast, if the route method is ANY, it will match any method provided - the provided method does not matter.
 func routeMatched(matched bool, method string, route *Route) bool {
 	return matched && (route.Method == ANY || route.Method == method || method == ANY) && route.Handler != nil
 }

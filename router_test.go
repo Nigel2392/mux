@@ -229,6 +229,24 @@ func TestMuxReverse(t *testing.T) {
 	}
 }
 
+func TestRouteMatch(t *testing.T) {
+	var route = rt.Find("hello:world")
+	if route == nil {
+		t.Errorf("Expected to find route hello:world")
+		return
+	}
+
+	var rt, ok, vars = route.Match(mux.ANY, []string{"world", "test"})
+	if !ok || rt == nil {
+		t.Fatal("expected to match `/world/test/`")
+	}
+
+	var s = vars.Get("name")
+	if s != "test" {
+		t.Fatalf("Expected name from variables to be \"test\", got %q", s)
+	}
+}
+
 const nsContextKey = "namespace"
 
 func TestRoutePathName(t *testing.T) {

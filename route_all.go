@@ -5,11 +5,6 @@ package mux
 
 import "net/http"
 
-// A function that handles a request.
-func (r *Route) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	r.Handler.ServeHTTP(w, req)
-}
-
 func (r *Route) Get(path string, handler Handler, name ...string) *Route {
 	return r.Handle(GET, path, handler, name...)
 }
