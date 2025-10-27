@@ -17,9 +17,13 @@ func GZIP(next mux.Handler) mux.Handler {
 		// Compress the response
 		var gz = gzip.NewWriter(w)
 		defer gz.Close()
+
 		// Create gzip response writer
 		var gzw = gzipResponseWriter{ResponseWriter: w, Writer: gz}
 		next.ServeHTTP(gzw, r)
+
+		// Flush any remaining data to the underlying writer
+		gz.Flush()
 	})
 }
 

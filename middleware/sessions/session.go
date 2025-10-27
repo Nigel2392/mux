@@ -85,7 +85,7 @@ func SessionMiddleware(store *scs.SessionManager) mux.Middleware {
 			for _, finalizer := range scsSession.finalizers {
 				ctx, err = finalizer(r, ctx)
 				if err != nil {
-					store.ErrorFunc(w, r, err)
+					store.ErrorFunc(bw, r, err)
 					return
 				}
 			}
