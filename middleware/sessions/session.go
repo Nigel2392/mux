@@ -4,10 +4,8 @@
 package sessions
 
 import (
-	"bytes"
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/Nigel2392/mux"
 	"github.com/alexedwards/scs/v2"
@@ -46,6 +44,7 @@ func SessionFromContext(ctx context.Context) Session {
 func SessionMiddleware(store *scs.SessionManager) mux.Middleware {
 	return (func(next mux.Handler) mux.Handler {
 		return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
+
 			var token string
 			cookie, err := r.Cookie(store.Cookie.Name)
 			if err == nil {
@@ -59,7 +58,12 @@ func SessionMiddleware(store *scs.SessionManager) mux.Middleware {
 			}
 
 			r = r.WithContext(ctx)
-			bw := &bufferedResponseWriter{ResponseWriter: w}
+
+			bw := &sessionResponseWriter{
+				ResponseWriter: w,
+				request:        r,
+				sessionManager: store,
+			}
 
 			// ADDED CODE
 			// 		ADDED CODE
@@ -77,6 +81,7 @@ func SessionMiddleware(store *scs.SessionManager) mux.Middleware {
 			next.ServeHTTP(bw, r)
 
 			ctx = r.Context()
+
 			for _, finalizer := range scsSession.finalizers {
 				ctx, err = finalizer(r, ctx)
 				if err != nil {
@@ -85,46 +90,9 @@ func SessionMiddleware(store *scs.SessionManager) mux.Middleware {
 				}
 			}
 
-			if r.MultipartForm != nil {
-				r.MultipartForm.RemoveAll()
+			if !bw.written {
+				commitAndWriteSessionCookie(store, w, r)
 			}
-
-			switch store.Status(ctx) {
-			case scs.Modified:
-				token, expiry, err := store.Commit(ctx)
-				if err != nil {
-					store.ErrorFunc(w, r, err)
-					return
-				}
-
-				store.WriteSessionCookie(ctx, w, token, expiry)
-			case scs.Destroyed:
-				store.WriteSessionCookie(ctx, w, "", time.Time{})
-			}
-
-			w.Header().Add("Vary", "Cookie")
-
-			if bw.code != 0 {
-				w.WriteHeader(bw.code)
-			}
-			w.Write(bw.buf.Bytes())
 		})
 	})
-}
-
-// Oh yes, please derive your code from my package;
-// Exporting? Oh, no of course not!
-// Two implementations have to exist. Right?
-type bufferedResponseWriter struct {
-	http.ResponseWriter
-	buf  bytes.Buffer
-	code int
-}
-
-func (bw *bufferedResponseWriter) Write(b []byte) (int, error) {
-	return bw.buf.Write(b)
-}
-
-func (bw *bufferedResponseWriter) WriteHeader(code int) {
-	bw.code = code
 }
