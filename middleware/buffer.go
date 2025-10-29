@@ -25,13 +25,8 @@ func BufferMiddleware(newFn func(w http.ResponseWriter, r *http.Request) http.Re
 
 	return func(next mux.Handler) mux.Handler {
 		return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
-			//	defer func() {
-			//		if rec := recover(); rec != nil {
-			//			panic(rec)
-			//		}
-			//	}()
-
 			var bw = newFn(w, r)
+
 			next.ServeHTTP(bw, r)
 
 			if buffered, ok := bw.(BufferedResponse); ok {
@@ -73,5 +68,5 @@ func (bw *bufferedResponseWriter) FlushBuffer() {
 
 	maps.Copy(bw.w.Header(), bw.hdr)
 
-	bw.w.Write(bw.buf.Bytes())
+	bw.buf.WriteTo(bw.w)
 }
