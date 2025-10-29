@@ -77,6 +77,49 @@ func (r *Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	handler.ServeHTTP(w, req)
 }
 
+// Mirrors ServeHTTP but returns the handler, variables, and whether a match was found.
+//
+// ServeHTTP is more efficient if you just want to serve the request directly,
+// skipping an extra allocation for the returned function (handler).
+func (r *Mux) Resolve(method, path string) (http.Handler, Variables, bool) {
+	var route, variables = r.Match(method, path)
+	if route == nil || route.Handler == nil {
+		return http.HandlerFunc(r.NotFound), nil, false
+	}
+
+	var handler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		req = SetContextVars(req, variables)
+		req = req.WithContext(ContextWithRoute(
+			req.Context(), route,
+		))
+
+		var h Handler = route.Handler
+		if bindable, ok := h.(BindableHandler); ok {
+			h = bindable.Bind(req, route, variables)
+		}
+
+		// Do not run middleware if disabled.
+		//lint:ignore S1002 Extra verbose to make it more clear.
+		if route.DisabledMiddleware == false {
+			for i := len(route.Middleware) - 1; i >= 0; i-- {
+				h = route.Middleware[i](h)
+			}
+
+			for i := len(r.middleware) - 1; i >= 0; i-- {
+				h = r.middleware[i](h)
+			}
+
+			for i := len(route.PreMiddleware) - 1; i >= 0; i-- {
+				h = route.PreMiddleware[i](h)
+			}
+		}
+
+		h.ServeHTTP(w, req)
+	})
+
+	return handler, variables, true
+}
+
 func (r *Mux) NotFound(w http.ResponseWriter, req *http.Request) {
 	if r.NotFoundHandler != nil {
 		r.NotFoundHandler(w, req)
