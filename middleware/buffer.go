@@ -13,20 +13,25 @@ type BufferedResponse interface {
 	FlushBuffer()
 }
 
-func BufferMiddleware(new func(w http.ResponseWriter, r *http.Request) http.ResponseWriter) mux.Middleware {
-	if new == nil {
-		new = func(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
+func BufferMiddleware(newFn func(w http.ResponseWriter, r *http.Request) http.ResponseWriter) mux.Middleware {
+	if newFn == nil {
+		newFn = func(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
 			return &bufferedResponseWriter{
-				ResponseWriter: w,
-				hdr:            w.Header().Clone(),
+				w:   w,
+				hdr: w.Header().Clone(),
 			}
 		}
 	}
 
 	return func(next mux.Handler) mux.Handler {
 		return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
-			var bw = new(w, r)
+			//	defer func() {
+			//		if rec := recover(); rec != nil {
+			//			panic(rec)
+			//		}
+			//	}()
 
+			var bw = newFn(w, r)
 			next.ServeHTTP(bw, r)
 
 			if buffered, ok := bw.(BufferedResponse); ok {
@@ -40,7 +45,7 @@ type bufferedResponseWriter struct {
 	code int
 	hdr  http.Header
 	buf  bytes.Buffer
-	http.ResponseWriter
+	w    http.ResponseWriter
 }
 
 func (bw *bufferedResponseWriter) WriteHeader(code int) {
@@ -57,16 +62,16 @@ func (bw *bufferedResponseWriter) Write(b []byte) (int, error) {
 
 func (bw *bufferedResponseWriter) FlushBuffer() {
 	if bw.code != 0 {
-		bw.ResponseWriter.WriteHeader(bw.code)
+		bw.w.WriteHeader(bw.code)
 	}
 
-	for k := range bw.ResponseWriter.Header() {
+	for k := range bw.w.Header() {
 		if _, ok := bw.hdr[k]; !ok {
 			delete(bw.hdr, k)
 		}
 	}
 
-	maps.Copy(bw.ResponseWriter.Header(), bw.hdr)
+	maps.Copy(bw.w.Header(), bw.hdr)
 
-	bw.ResponseWriter.Write(bw.buf.Bytes())
+	bw.w.Write(bw.buf.Bytes())
 }
