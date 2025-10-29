@@ -25,11 +25,10 @@ func BufferMiddleware(newFn func(w http.ResponseWriter, r *http.Request) http.Re
 
 	return func(next mux.Handler) mux.Handler {
 		return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
-			var bw = newFn(w, r)
+			w = newFn(w, r)
+			next.ServeHTTP(w, r)
 
-			next.ServeHTTP(bw, r)
-
-			if buffered, ok := bw.(BufferedResponse); ok {
+			if buffered, ok := w.(BufferedResponse); ok {
 				buffered.FlushBuffer()
 			}
 		})
