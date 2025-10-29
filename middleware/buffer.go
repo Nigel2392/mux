@@ -42,6 +42,13 @@ type bufferedResponseWriter struct {
 	w    http.ResponseWriter
 }
 
+func NewBufferedWriter(w http.ResponseWriter) http.ResponseWriter {
+	return &bufferedResponseWriter{
+		w:   w,
+		hdr: w.Header().Clone(),
+	}
+}
+
 func (bw *bufferedResponseWriter) WriteHeader(code int) {
 	bw.code = code
 }
@@ -59,13 +66,14 @@ func (bw *bufferedResponseWriter) FlushBuffer() {
 		bw.w.WriteHeader(bw.code)
 	}
 
-	for k := range bw.w.Header() {
+	var dst = bw.w.Header()
+	for k := range dst {
 		if _, ok := bw.hdr[k]; !ok {
-			delete(bw.hdr, k)
+			delete(dst, k)
 		}
 	}
 
-	maps.Copy(bw.w.Header(), bw.hdr)
+	maps.Copy(dst, bw.hdr)
 
 	bw.buf.WriteTo(bw.w)
 }

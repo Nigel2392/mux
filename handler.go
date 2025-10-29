@@ -12,7 +12,7 @@ type BindableHandler interface {
 	Bind(r *http.Request, rt *Route, vars Variables) Handler
 }
 
-type HandleFunc func(w http.ResponseWriter, req *http.Request)
+type HandleFunc = func(w http.ResponseWriter, req *http.Request)
 
 type FuncHandler struct {
 	Func HandleFunc

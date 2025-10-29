@@ -74,6 +74,47 @@ func TestBufferMiddlewarePanic(t *testing.T) {
 
 func TestBufferMiddlewarePanic2(t *testing.T) {
 	var rt = mux.New()
+	rt.Use((&middleware.RecovererMiddleware{
+		Next: func(next mux.Handler, w http.ResponseWriter, r *http.Request) {
+			w = middleware.NewBufferedWriter(w)
+			next.ServeHTTP(w, r)
+			w.(middleware.BufferedResponse).FlushBuffer()
+		},
+		Error: func(err error, w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "--Internal Server Error--", http.StatusInternalServerError)
+		},
+	}).Handle)
+	rt.Handle(mux.GET, "/panic/", mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
+
+		w.Write([]byte("Before panic"))
+
+		panic("intentional panic for testing")
+	}), "panic")
+
+	var server = serve(rt)
+	defer server.Close()
+
+	resp, err := http.Get(server.URL + "/panic/")
+	if err != nil {
+		t.Fatalf("Failed to make GET request: %v", err)
+	}
+
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("Expected status code 500, got %d", resp.StatusCode)
+	}
+
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(resp.Body)
+	if buf.String() != "--Internal Server Error--\n" {
+		t.Errorf("Expected '--Internal Server Error--', got '%s'", buf.String())
+	}
+
+	t.Logf("Panic handled successfully with BufferMiddleware and Recoverer, response: %s", buf.String())
+}
+
+func TestBufferMiddlewarePanicWrong(t *testing.T) {
+	var rt = mux.New()
 	rt.Use(middleware.BufferMiddleware(nil))
 	rt.Use(middleware.Recoverer(func(err error, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "--Internal Server Error--", http.StatusInternalServerError)

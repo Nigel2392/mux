@@ -53,7 +53,6 @@ func (r *Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	))
 
 	var handler Handler = route.Handler
-
 	if bindable, ok := route.Handler.(BindableHandler); ok {
 		handler = bindable.Bind(req, route, variables)
 	}
