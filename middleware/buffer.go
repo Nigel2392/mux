@@ -62,9 +62,6 @@ func (bw *bufferedResponseWriter) Write(b []byte) (int, error) {
 }
 
 func (bw *bufferedResponseWriter) FlushBuffer() {
-	if bw.code != 0 {
-		bw.w.WriteHeader(bw.code)
-	}
 
 	var dst = bw.w.Header()
 	for k := range dst {
@@ -74,6 +71,10 @@ func (bw *bufferedResponseWriter) FlushBuffer() {
 	}
 
 	maps.Copy(dst, bw.hdr)
+
+	if bw.code != 0 {
+		bw.w.WriteHeader(bw.code)
+	}
 
 	bw.buf.WriteTo(bw.w)
 }
