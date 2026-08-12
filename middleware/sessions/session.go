@@ -15,6 +15,7 @@ const session_interface_key = "mux.middleware.sessions.Session"
 
 // This interface will be set on the request's context.
 type Session interface {
+	Token() string
 	Set(key string, value interface{})
 	Get(key string) interface{}
 	Exists(key string) bool

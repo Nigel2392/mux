@@ -18,6 +18,10 @@ type scsRequestSession struct {
 	finalizers []func(r *http.Request, ctx context.Context) (context.Context, error)
 }
 
+func (s *scsRequestSession) Token() string {
+	return s.store.Token(s.r.Context())
+}
+
 func (s *scsRequestSession) Get(key string) interface{} {
 	return s.store.Get(s.r.Context(), key)
 }

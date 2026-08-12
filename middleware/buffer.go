@@ -16,10 +16,7 @@ type BufferedResponse interface {
 func BufferMiddleware(newFn func(w http.ResponseWriter, r *http.Request) http.ResponseWriter) mux.Middleware {
 	if newFn == nil {
 		newFn = func(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
-			return &bufferedResponseWriter{
-				w:   w,
-				hdr: w.Header().Clone(),
-			}
+			return NewBufferedWriter(w)
 		}
 	}
 
@@ -77,4 +74,8 @@ func (bw *bufferedResponseWriter) FlushBuffer() {
 	}
 
 	bw.buf.WriteTo(bw.w)
+}
+
+func (bw *bufferedResponseWriter) Unwrap() http.ResponseWriter {
+	return bw.w
 }
