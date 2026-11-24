@@ -7,7 +7,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/Nigel2392/mux/middleware"
+	"github.com/Nigel2392/mux/v2/middleware"
 	"github.com/alexedwards/scs/v2"
 )
 

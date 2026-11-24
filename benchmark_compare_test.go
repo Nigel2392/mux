@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	muxv1 "github.com/Nigel2392/mux/v1"
+	muxv1 "github.com/Nigel2392/mux/v2/v1"
 	muxv2 "github.com/Nigel2392/mux/v2"
 )
 

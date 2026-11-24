@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Nigel2392/mux/middleware"
+	"github.com/Nigel2392/mux/v2/middleware"
 )
 
 const (

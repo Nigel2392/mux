@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Nigel2392/mux/middleware"
-	"github.com/Nigel2392/mux/v1"
+	"github.com/Nigel2392/mux/v2/middleware"
+	"github.com/Nigel2392/mux/v2/v1"
 )
 
 func serve(multiplexer http.Handler) *httptest.Server {

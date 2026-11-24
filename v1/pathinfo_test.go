@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Nigel2392/mux/v1"
+	"github.com/Nigel2392/mux/v2/v1"
 )
 
 type pathInfoTest struct {

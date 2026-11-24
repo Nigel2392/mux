@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Nigel2392/mux/middleware/sessions"
+	"github.com/Nigel2392/mux/v2/middleware/sessions"
 	"github.com/alexedwards/scs/v2"
 )
 

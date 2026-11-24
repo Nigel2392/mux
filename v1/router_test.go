@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/Nigel2392/mux/v1"
+	"github.com/Nigel2392/mux/v2/v1"
 )
 
 var rt = mux.New()

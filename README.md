@@ -8,25 +8,29 @@ matching, typed path captures, and URL updates for registered routes.
 This checkout requires Go 1.27.3 or newer. If your application has no
 `go.mod` yet, run `go mod init example.com/myapp` in its directory.
 
-Install v2 from a published revision that contains the v2 package.
+After a release with the corrected module layout is published, install v2
+with the following command.
 
 ```sh
 go get github.com/Nigel2392/mux/v2@latest
 ```
 
-Applications using v1 can install its package instead.
+If you previously fetched `v2.0.0` with the router in a subdirectory, use a
+release with the corrected layout or follow the local checkout instructions
+below.
+
+For v1, use the import path `github.com/Nigel2392/mux` and a v1 release tag.
 
 ```sh
-go get github.com/Nigel2392/mux/v1@latest
+go get github.com/Nigel2392/mux@v1.6.1
 ```
 
-If `@latest` does not contain the package you need, replace `latest` with a
-tag or commit that does. You can also point your application's module at a
-local checkout. In this example, `../mux` is relative to your application's
-`go.mod`.
+To use v2 from a local checkout with the corrected layout, point your
+application at that checkout. In this example, `../mux` is relative to your
+application's `go.mod`.
 
 ```sh
-go mod edit -replace github.com/Nigel2392/mux=../mux
+go mod edit -replace github.com/Nigel2392/mux/v2=../mux
 go get github.com/Nigel2392/mux/v2
 ```
 
@@ -107,16 +111,17 @@ routes in the name chain, so `myapp:product` reverses to
 `Route.Use` applies middleware to the route and its descendants. Use
 `Mux.Use` for middleware shared by all matched routes, `Route.Preprocess` to
 run route middleware before mux middleware, or `Route.RunsMiddleware(false)`
-to skip middleware for a route. See the [namespace examples](v2/namespace_test.go)
-and the [middleware package](middleware), which includes an
+to skip middleware for a route. See the [namespace examples](namespace_test.go)
+and the [middleware package](middleware), available at
+`github.com/Nigel2392/mux/v2/middleware`. It includes an
 [SCS session integration](middleware/sessions).
 
 ## Benchmarks
 
-Run the side-by-side v1 and v2 benchmarks from this repository.
+Run the side-by-side v1 and v2 benchmarks from the repository root.
 
 ```sh
-go test -run '^$' -bench '^BenchmarkCompare' -benchmem ./v2
+go test -run '^$' -bench '^BenchmarkCompare' -benchmem .
 ```
 
 Each pair uses the same route table and registration order. Lookup benchmarks

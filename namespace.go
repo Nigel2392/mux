@@ -3,7 +3,7 @@ package mux
 import (
 	"net/http"
 
-	"github.com/Nigel2392/mux/middleware"
+	"github.com/Nigel2392/mux/v2/middleware"
 )
 
 // Multiplexer registers routes and middleware.

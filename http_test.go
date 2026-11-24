@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Nigel2392/mux/middleware"
+	"github.com/Nigel2392/mux/v2/middleware"
 	mux "github.com/Nigel2392/mux/v2"
 )
 

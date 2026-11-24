@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Nigel2392/mux/hosts"
+	"github.com/Nigel2392/mux/v2/hosts"
 )
 
 // Check if the request.Host is in the allowed hosts list

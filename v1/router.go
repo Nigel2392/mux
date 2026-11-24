@@ -3,7 +3,7 @@ package mux
 import (
 	"strings"
 
-	"github.com/Nigel2392/mux/middleware"
+	"github.com/Nigel2392/mux/v2/middleware"
 )
 
 const (

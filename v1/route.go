@@ -9,7 +9,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/Nigel2392/mux/middleware"
+	"github.com/Nigel2392/mux/v2/middleware"
 )
 
 type Route struct {
