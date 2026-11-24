@@ -7,7 +7,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/Nigel2392/mux"
+	"github.com/Nigel2392/mux/middleware"
 	"github.com/alexedwards/scs/v2"
 )
 
@@ -42,9 +42,9 @@ func SessionFromContext(ctx context.Context) Session {
 }
 
 // Add a session to the request.
-func SessionMiddleware(store *scs.SessionManager) mux.Middleware {
-	return (func(next mux.Handler) mux.Handler {
-		return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
+func SessionMiddleware(store *scs.SessionManager) middleware.Middleware {
+	return (func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			var token string
 			cookie, err := r.Cookie(store.Cookie.Name)

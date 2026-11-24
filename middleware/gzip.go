@@ -6,13 +6,11 @@ package middleware
 import (
 	"compress/gzip"
 	"net/http"
-
-	"github.com/Nigel2392/mux"
 )
 
 // GZIP compresses the response using gzip compression.
-func GZIP(next mux.Handler) mux.Handler {
-	return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
+func GZIP(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Encoding", "gzip")
 		// Compress the response
 		var gz = gzip.NewWriter(w)

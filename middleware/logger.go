@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/Nigel2392/mux"
+	"github.com/Nigel2392/mux/hosts"
 )
 
 type Logger struct {
@@ -22,10 +22,10 @@ var DefaultLogger = &Logger{
 	Output: os.Stdout,
 }
 
-func (l *Logger) Intercept(next mux.Handler) mux.Handler {
-	return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
+func (l *Logger) Intercept(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
-			remoteAddr = mux.GetIP(r, l.RequestProxied)
+			remoteAddr = hosts.GetIP(r, l.RequestProxied)
 			startTime  = time.Now()
 			method     = r.Method
 			path       = r.URL.Path

@@ -7,17 +7,15 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-
-	"github.com/Nigel2392/mux"
 )
 
 // Recoverer recovers from panics and logs the error,
 // if the logger was set.
 //
 // Deprecated: Use [RecovererMiddleware] struct type instead.
-func Recoverer(onError func(err error, w http.ResponseWriter, r *http.Request)) mux.Middleware {
-	return func(next mux.Handler) mux.Handler {
-		return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
+func Recoverer(onError func(err error, w http.ResponseWriter, r *http.Request)) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if err := recover(); err != nil {
 					switch err := err.(type) {
@@ -36,7 +34,7 @@ func Recoverer(onError func(err error, w http.ResponseWriter, r *http.Request)) 
 }
 
 type RecovererMiddleware struct {
-	Next  func(next mux.Handler, w http.ResponseWriter, r *http.Request)
+	Next  func(next http.Handler, w http.ResponseWriter, r *http.Request)
 	Error func(err error, w http.ResponseWriter, r *http.Request)
 }
 
@@ -48,7 +46,7 @@ func (rm *RecovererMiddleware) HandleError(err error, w http.ResponseWriter, r *
 	}
 }
 
-func (rm *RecovererMiddleware) HandleNext(next mux.Handler, w http.ResponseWriter, r *http.Request) {
+func (rm *RecovererMiddleware) HandleNext(next http.Handler, w http.ResponseWriter, r *http.Request) {
 	if rm.Next != nil {
 		rm.Next(next, w, r)
 	} else {
@@ -56,7 +54,7 @@ func (rm *RecovererMiddleware) HandleNext(next mux.Handler, w http.ResponseWrite
 	}
 }
 
-func (rm *RecovererMiddleware) Handle(next mux.Handler) mux.Handler {
+func (rm *RecovererMiddleware) Handle(next http.Handler) http.Handler {
 	return &_RecovererMiddleware{
 		RecovererMiddleware: rm,
 		next:                next,
@@ -65,7 +63,7 @@ func (rm *RecovererMiddleware) Handle(next mux.Handler) mux.Handler {
 
 type _RecovererMiddleware struct {
 	*RecovererMiddleware
-	next mux.Handler
+	next http.Handler
 }
 
 func (rm *_RecovererMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {

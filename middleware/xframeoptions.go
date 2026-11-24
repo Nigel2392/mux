@@ -5,8 +5,6 @@ package middleware
 
 import (
 	"net/http"
-
-	"github.com/Nigel2392/mux"
 )
 
 // XFrameOption is the type for the XFrameOptions middleware.
@@ -25,9 +23,9 @@ const (
 // X-Frame-Options is a header that can be used to indicate whether or not a browser should be allowed to render a page in a <frame>, <iframe> or <object>.
 //
 // Sites can use this to avoid clickjacking attacks, by ensuring that their content is not embedded into other sites.
-func XFrameOptions(options XFrameOption) mux.Middleware {
-	return func(next mux.Handler) mux.Handler {
-		return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
+func XFrameOptions(options XFrameOption) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("X-Frame-Options", string(options))
 			next.ServeHTTP(w, r)
 		})

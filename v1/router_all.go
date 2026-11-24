@@ -3,7 +3,11 @@
 
 package mux
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/Nigel2392/mux/middleware"
+)
 
 var (
 	_ Multiplexer = (*Mux)(nil)
@@ -14,23 +18,23 @@ var (
 //
 // This is a wrapper around the nigel2392/mux.Mux interface
 type Multiplexer interface {
-	Use(middleware ...Middleware)
-	Handle(method string, path string, handler Handler, name ...string) *Route
+	Use(middleware ...middleware.Middleware)
+	Handle(method string, path string, handler http.Handler, name ...string) *Route
 	HandleFunc(method string, path string, handler func(w http.ResponseWriter, r *http.Request), name ...string) *Route
 	AddRoute(route *Route)
 
-	Any(path string, handler Handler, name ...string) *Route
-	Get(path string, handler Handler, name ...string) *Route
-	Post(path string, handler Handler, name ...string) *Route
-	Put(path string, handler Handler, name ...string) *Route
-	Patch(path string, handler Handler, name ...string) *Route
-	Delete(path string, handler Handler, name ...string) *Route
+	Any(path string, handler http.Handler, name ...string) *Route
+	Get(path string, handler http.Handler, name ...string) *Route
+	Post(path string, handler http.Handler, name ...string) *Route
+	Put(path string, handler http.Handler, name ...string) *Route
+	Patch(path string, handler http.Handler, name ...string) *Route
+	Delete(path string, handler http.Handler, name ...string) *Route
 }
 
 // The muxer.
 type Mux struct {
 	routes          []*Route
-	middleware      []Middleware
+	middleware      []middleware.Middleware
 	NotFoundHandler http.HandlerFunc
 }
 
@@ -52,7 +56,7 @@ func (r *Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		req.Context(), route,
 	))
 
-	var handler Handler = route.Handler
+	var handler http.Handler = route.Handler
 	if bindable, ok := route.Handler.(BindableHandler); ok {
 		handler = bindable.Bind(req, route, variables)
 	}
@@ -76,6 +80,11 @@ func (r *Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	handler.ServeHTTP(w, req)
 }
 
+type BindableHandler interface {
+	http.Handler
+	Bind(r *http.Request, rt *Route, vars Variables) http.Handler
+}
+
 // Mirrors ServeHTTP but returns the handler, variables, and whether a match was found.
 //
 // ServeHTTP is more efficient if you just want to serve the request directly,
@@ -92,7 +101,7 @@ func (r *Mux) Resolve(method, path string) (http.Handler, Variables, bool) {
 			req.Context(), route,
 		))
 
-		var h Handler = route.Handler
+		var h http.Handler = route.Handler
 		if bindable, ok := h.(BindableHandler); ok {
 			h = bindable.Bind(req, route, variables)
 		}
@@ -155,7 +164,7 @@ func (r *Mux) Match(method string, path string) (*Route, Variables) {
 	return nil, nil
 }
 
-func (r *Mux) Handle(method string, path string, handler Handler, name ...string) *Route {
+func (r *Mux) Handle(method string, path string, handler http.Handler, name ...string) *Route {
 	var route = NewRoute(method, path, handler, name...)
 	r.routes = append(r.routes, route)
 
@@ -183,37 +192,37 @@ func (r *Mux) AddRoute(rt *Route) {
 }
 
 func (r *Mux) HandleFunc(method string, path string, handler func(w http.ResponseWriter, r *http.Request), name ...string) *Route {
-	return r.Handle(method, path, NewHandler(handler), name...)
+	return r.Handle(method, path, http.HandlerFunc(handler), name...)
 }
 
-func (r *Mux) Get(path string, handler Handler, name ...string) *Route {
+func (r *Mux) Get(path string, handler http.Handler, name ...string) *Route {
 	return r.Handle(GET, path, handler, name...)
 }
 
-func (r *Mux) Post(path string, handler Handler, name ...string) *Route {
+func (r *Mux) Post(path string, handler http.Handler, name ...string) *Route {
 	return r.Handle(POST, path, handler, name...)
 }
 
-func (r *Mux) Put(path string, handler Handler, name ...string) *Route {
+func (r *Mux) Put(path string, handler http.Handler, name ...string) *Route {
 	return r.Handle(PUT, path, handler, name...)
 }
 
-func (r *Mux) Delete(path string, handler Handler, name ...string) *Route {
+func (r *Mux) Delete(path string, handler http.Handler, name ...string) *Route {
 	return r.Handle(DELETE, path, handler, name...)
 }
 
-func (r *Mux) Head(path string, handler Handler, name ...string) *Route {
+func (r *Mux) Head(path string, handler http.Handler, name ...string) *Route {
 	return r.Handle(HEAD, path, handler, name...)
 }
 
-func (r *Mux) Patch(path string, handler Handler, name ...string) *Route {
+func (r *Mux) Patch(path string, handler http.Handler, name ...string) *Route {
 	return r.Handle(PATCH, path, handler, name...)
 }
 
-func (r *Mux) Options(path string, handler Handler, name ...string) *Route {
+func (r *Mux) Options(path string, handler http.Handler, name ...string) *Route {
 	return r.Handle(OPTIONS, path, handler, name...)
 }
 
-func (r *Mux) Any(path string, handler Handler, name ...string) *Route {
+func (r *Mux) Any(path string, handler http.Handler, name ...string) *Route {
 	return r.Handle(ANY, path, handler, name...)
 }

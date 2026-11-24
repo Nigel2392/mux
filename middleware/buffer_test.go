@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Nigel2392/mux"
 	"github.com/Nigel2392/mux/middleware"
+	"github.com/Nigel2392/mux/v1"
 )
 
 func serve(multiplexer http.Handler) *httptest.Server {
@@ -17,7 +17,7 @@ func serve(multiplexer http.Handler) *httptest.Server {
 func TestBufferMiddleware(t *testing.T) {
 	var rt = mux.New()
 	rt.Use(middleware.BufferMiddleware(nil))
-	rt.Handle(mux.POST, "/buffer/", mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
+	rt.Handle(mux.POST, "/buffer/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Buffered Response"))
 	}), "buffered")
 
@@ -43,7 +43,7 @@ func TestBufferMiddlewarePanic(t *testing.T) {
 		http.Error(w, "--Internal Server Error--", http.StatusInternalServerError)
 	}))
 	rt.Use(middleware.BufferMiddleware(nil))
-	rt.Handle(mux.GET, "/panic/", mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
+	rt.Handle(mux.GET, "/panic/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		w.Write([]byte("Before panic"))
 
@@ -75,7 +75,7 @@ func TestBufferMiddlewarePanic(t *testing.T) {
 func TestBufferMiddlewarePanic2(t *testing.T) {
 	var rt = mux.New()
 	rt.Use((&middleware.RecovererMiddleware{
-		Next: func(next mux.Handler, w http.ResponseWriter, r *http.Request) {
+		Next: func(next http.Handler, w http.ResponseWriter, r *http.Request) {
 			w = middleware.NewBufferedWriter(w)
 			next.ServeHTTP(w, r)
 			w.(middleware.BufferedResponse).FlushBuffer()
@@ -84,7 +84,7 @@ func TestBufferMiddlewarePanic2(t *testing.T) {
 			http.Error(w, "--Internal Server Error--", http.StatusInternalServerError)
 		},
 	}).Handle)
-	rt.Handle(mux.GET, "/panic/", mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
+	rt.Handle(mux.GET, "/panic/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		w.Write([]byte("Before panic"))
 
@@ -119,7 +119,7 @@ func TestBufferMiddlewarePanicWrong(t *testing.T) {
 	rt.Use(middleware.Recoverer(func(err error, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "--Internal Server Error--", http.StatusInternalServerError)
 	}))
-	rt.Handle(mux.GET, "/panic/", mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
+	rt.Handle(mux.GET, "/panic/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		w.Write([]byte("Before panic"))
 

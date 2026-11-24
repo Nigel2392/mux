@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"maps"
 	"net/http"
-
-	"github.com/Nigel2392/mux"
 )
 
 type BufferedResponse interface {
@@ -13,15 +11,15 @@ type BufferedResponse interface {
 	FlushBuffer()
 }
 
-func BufferMiddleware(newFn func(w http.ResponseWriter, r *http.Request) http.ResponseWriter) mux.Middleware {
+func BufferMiddleware(newFn func(w http.ResponseWriter, r *http.Request) http.ResponseWriter) Middleware {
 	if newFn == nil {
 		newFn = func(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
 			return NewBufferedWriter(w)
 		}
 	}
 
-	return func(next mux.Handler) mux.Handler {
-		return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w = newFn(w, r)
 			next.ServeHTTP(w, r)
 

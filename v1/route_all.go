@@ -5,40 +5,40 @@ package mux
 
 import "net/http"
 
-func (r *Route) Get(path string, handler Handler, name ...string) *Route {
+func (r *Route) Get(path string, handler http.Handler, name ...string) *Route {
 	return r.Handle(GET, path, handler, name...)
 }
 
-func (r *Route) Post(path string, handler Handler, name ...string) *Route {
+func (r *Route) Post(path string, handler http.Handler, name ...string) *Route {
 	return r.Handle(POST, path, handler, name...)
 }
 
-func (r *Route) Put(path string, handler Handler, name ...string) *Route {
+func (r *Route) Put(path string, handler http.Handler, name ...string) *Route {
 	return r.Handle(PUT, path, handler, name...)
 }
 
-func (r *Route) Delete(path string, handler Handler, name ...string) *Route {
+func (r *Route) Delete(path string, handler http.Handler, name ...string) *Route {
 	return r.Handle(DELETE, path, handler, name...)
 }
 
-func (r *Route) Head(path string, handler Handler, name ...string) *Route {
+func (r *Route) Head(path string, handler http.Handler, name ...string) *Route {
 	return r.Handle(HEAD, path, handler, name...)
 }
 
-func (r *Route) Patch(path string, handler Handler, name ...string) *Route {
+func (r *Route) Patch(path string, handler http.Handler, name ...string) *Route {
 	return r.Handle(PATCH, path, handler, name...)
 }
 
-func (r *Route) Options(path string, handler Handler, name ...string) *Route {
+func (r *Route) Options(path string, handler http.Handler, name ...string) *Route {
 	return r.Handle(OPTIONS, path, handler, name...)
 }
 
-func (r *Route) Any(path string, handler Handler, name ...string) *Route {
+func (r *Route) Any(path string, handler http.Handler, name ...string) *Route {
 	return r.Handle(ANY, path, handler, name...)
 }
 
 func (r *Route) HandleFunc(method string, path string, handler func(w http.ResponseWriter, r *http.Request), name ...string) *Route {
-	return r.Handle(method, path, NewHandler(handler), name...)
+	return r.Handle(method, path, http.HandlerFunc(handler), name...)
 }
 
 func setChildData(child, parent *Route) {
@@ -71,7 +71,7 @@ func (r *Route) AddRoute(rt *Route) {
 // Handle adds a handler to the route.
 //
 // It returns the route that was added so that it can be used to add children.
-func (r *Route) Handle(method string, path string, handler Handler, name ...string) *Route {
+func (r *Route) Handle(method string, path string, handler http.Handler, name ...string) *Route {
 	var route = NewRoute(method, path, handler, name...)
 	r.AddRoute(route)
 	return route

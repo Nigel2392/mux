@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Nigel2392/mux"
+	"github.com/Nigel2392/mux/middleware"
 )
 
 const (
-	context_user_key = "mux.middleware.authentication.User"
+	context_user_key = "Middleware.authentication.User"
 )
 
 type userContextValue struct {
@@ -77,9 +77,9 @@ func ContextWithUser(ctx context.Context, user any) context.Context {
 }
 
 // Add a user to the request.
-func AddUserMiddleware(f func(*http.Request) User) mux.Middleware {
-	return func(next mux.Handler) mux.Handler {
-		return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
+func AddUserMiddleware(f func(*http.Request) User) middleware.Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			r = r.WithContext(ContextWithUser(r.Context(), func() User {
 				return f(r)
@@ -93,12 +93,12 @@ func AddUserMiddleware(f func(*http.Request) User) mux.Middleware {
 // Middleware that only allows users who are authenticated to continue.
 // By default, will call the notAuth function.
 // Configure the AddUserMiddleware to change the default behavior.
-func LoginRequiredMiddleware(notAuth func(w http.ResponseWriter, r *http.Request)) mux.Middleware {
+func LoginRequiredMiddleware(notAuth func(w http.ResponseWriter, r *http.Request)) middleware.Middleware {
 	if notAuth == nil {
 		panic("LoginRequiredMiddleware: notAuth function is nil")
 	}
-	return func(next mux.Handler) mux.Handler {
-		return mux.NewHandler(func(w http.ResponseWriter, r *http.Request) {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var user = Retrieve(r)
 			if user == nil || !user.IsAuthenticated() {
 				notAuth(w, r)
