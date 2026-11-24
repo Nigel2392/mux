@@ -62,7 +62,9 @@ func (ns *namespace) AddRoute(route *Route) {
 		hook(route)
 	}
 	if hook := ns.options.OnRouteServe; hook != nil {
-		route.Use(func(next http.Handler) http.Handler {
+		// A namespace hook covers the entire mounted subtree, including
+		// children built before the subtree entered the namespace.
+		route.namespaceMiddleware = append(route.namespaceMiddleware, func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				next.ServeHTTP(w, hook(r))
 			})

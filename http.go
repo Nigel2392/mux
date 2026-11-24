@@ -2,6 +2,7 @@ package mux
 
 import (
 	"net/http"
+	"slices"
 
 	"github.com/Nigel2392/mux/v2/middleware"
 )
@@ -19,10 +20,19 @@ func (m *Mux) Use(middlewares ...middleware.Middleware) {
 	m.middleware = append(m.middleware, middlewares...)
 }
 
-// Use adds middleware to the route and its descendants. The matched route's
-// middleware runs before the middleware of its parent.
+// Use adds middleware to the route. Children inherit it when they are added.
 func (r *Route) Use(middlewares ...middleware.Middleware) {
 	r.Middleware = append(r.Middleware, middlewares...)
+}
+
+func (r *Route) setParent(parent *Route) {
+	r.Parent = parent
+	r.parentMiddleware = nil
+	r.middlewareBeforeParent = 0
+	if parent != nil {
+		r.parentMiddleware = slices.Clone(parent.Middleware)
+		r.middlewareBeforeParent = len(r.Middleware)
+	}
 }
 
 // Preprocess adds middleware that runs before the mux and route middleware.
@@ -72,18 +82,24 @@ func (m *Mux) serveRoute(w http.ResponseWriter, req *http.Request, route *Route,
 		handler = binder.Bind(req, route, vars)
 	}
 	if !route.DisabledMiddleware {
-		handler = wrapRouteMiddleware(handler, route)
+		handler = wrapRouteMiddleware(handler, route, route.Middleware)
 		handler = wrapMiddleware(handler, m.middleware)
 		handler = wrapMiddleware(handler, route.PreMiddleware)
 	}
 	handler.ServeHTTP(w, req)
 }
 
-func wrapRouteMiddleware(handler http.Handler, route *Route) http.Handler {
+func wrapRouteMiddleware(handler http.Handler, route *Route, local []middleware.Middleware) http.Handler {
+	handler = wrapMiddleware(handler, route.namespaceMiddleware)
 	if route.Parent != nil {
-		handler = wrapRouteMiddleware(handler, route.Parent)
+		// Middleware added to the child after attachment runs after the chain
+		// it inherited at registration, as it did in v1.
+		split := min(route.middlewareBeforeParent, len(local))
+		handler = wrapMiddleware(handler, local[split:])
+		handler = wrapRouteMiddleware(handler, route.Parent, route.parentMiddleware)
+		local = local[:split]
 	}
-	return wrapMiddleware(handler, route.Middleware)
+	return wrapMiddleware(handler, local)
 }
 
 func wrapMiddleware(handler http.Handler, middlewares []middleware.Middleware) http.Handler {

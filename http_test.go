@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Nigel2392/mux/v2/middleware"
 	mux "github.com/Nigel2392/mux/v2"
+	"github.com/Nigel2392/mux/v2/middleware"
 )
 
 func recordMiddleware(events *[]string, label string) middleware.Middleware {
@@ -60,8 +60,8 @@ func TestHTTPMiddlewarePhases(t *testing.T) {
 			}
 
 			want := []string{
-				"pre-first", "pre-second", "mux-first", "mux-second", "child-first", "child-second", "parent",
-				"handler", "/parent", "/child-second", "/child-first", "/mux-second", "/mux-first", "/pre-second", "/pre-first",
+				"pre-first", "pre-second", "mux-first", "mux-second", "parent", "child-first", "child-second",
+				"handler", "/child-second", "/child-first", "/parent", "/mux-second", "/mux-first", "/pre-second", "/pre-first",
 			}
 			for _, tt := range []struct {
 				enabled bool
@@ -74,6 +74,71 @@ func TestHTTPMiddlewarePhases(t *testing.T) {
 				if out.Code != http.StatusNoContent || !slices.Equal(events, tt.want) {
 					t.Fatalf("middleware enabled=%v: got status %d and calls %v, want status 204 and calls %v", tt.enabled, out.Code, events, tt.want)
 				}
+			}
+		})
+	}
+}
+
+func TestHTTPRouteMiddlewareSnapshotsKeepLoginPublic(t *testing.T) {
+	for _, mode := range []string{"detached", "attached"} {
+		t.Run(mode, func(t *testing.T) {
+			router := mux.New()
+			admin := mux.NewRoute(mux.ANY, "/admin", nil)
+			if mode == "attached" {
+				router.AddRoute(admin)
+			}
+			admin.Use(func(next http.Handler) http.Handler {
+				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("X-App", "admin")
+					next.ServeHTTP(w, r)
+				})
+			})
+			public := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			})
+			login := admin.Get("/login/", public)
+			admin.Post("/login/", public)
+			admin.Use(func(next http.Handler) http.Handler {
+				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.Header.Get("Authorization") == "" {
+						http.Redirect(w, r, "/admin/login/", http.StatusFound)
+						return
+					}
+					next.ServeHTTP(w, r)
+				})
+			})
+			login.Get("/help", public)
+			app := admin.Get("/apps/admin_test", public)
+			app.Get("/settings", public)
+			if mode == "detached" {
+				router.AddRoute(admin)
+			}
+
+			for _, tt := range []struct {
+				method, path  string
+				authorization string
+				status        int
+				location      string
+			}{
+				{mux.GET, "/admin/apps/admin_test", "", http.StatusFound, "/admin/login/"},
+				{mux.GET, "/admin/apps/admin_test/settings", "", http.StatusFound, "/admin/login/"},
+				{mux.GET, "/admin/login/", "", http.StatusOK, ""},
+				{mux.POST, "/admin/login/", "", http.StatusOK, ""},
+				{mux.GET, "/admin/login/help", "", http.StatusOK, ""},
+				{mux.GET, "/admin/apps/admin_test", "test-user", http.StatusOK, ""},
+			} {
+				t.Run(tt.method+" "+tt.path+" "+tt.authorization, func(t *testing.T) {
+					req := httptest.NewRequest(tt.method, tt.path, nil)
+					req.Header.Set("Authorization", tt.authorization)
+					out := httptest.NewRecorder()
+					router.ServeHTTP(out, req)
+					if loc := out.Header().Get("Location"); out.Code != tt.status || loc != tt.location {
+						t.Fatalf("response status and location = %d, %q; want %d, %q", out.Code, loc, tt.status, tt.location)
+					}
+					if app := out.Header().Get("X-App"); app != "admin" {
+						t.Errorf("app middleware set header to %q, want admin", app)
+					}
+				})
 			}
 		})
 	}

@@ -92,7 +92,7 @@ func (r *Route) RemoveChild(child *Route) {
 
 func (r *Route) detach() {
 	r.unindex()
-	r.Parent = nil
+	r.setParent(nil)
 	r.linkPaths()
 }
 

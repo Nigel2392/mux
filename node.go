@@ -64,6 +64,10 @@ type Route struct {
 	branch     *branch
 	segments   []BoundMatcher
 	names      []string
+
+	parentMiddleware       []middleware.Middleware
+	middlewareBeforeParent int
+	namespaceMiddleware    []middleware.Middleware
 }
 
 var routeIDs atomic.Int64
@@ -109,7 +113,7 @@ func (r *Route) AddRoute(route *Route) {
 		return
 	}
 	checkUnattached(route)
-	route.Parent = r
+	route.setParent(r)
 	if route.Path != nil {
 		route.Path.Parent = r.Path
 	}
@@ -139,7 +143,9 @@ func (m *Mux) addRoute(parent, route *Route) {
 		m.routes = append(m.routes, route)
 	}
 	for _, item := range parsed {
-		item.route.Parent = item.parent
+		if item.route.Parent != item.parent {
+			item.route.setParent(item.parent)
+		}
 		item.route.Path = item.path
 		if item.route.identifier == 0 {
 			item.route.identifier = routeIDs.Add(1)

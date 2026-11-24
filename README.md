@@ -108,7 +108,8 @@ route edits outside concurrent lookups. Both `Find` and `Reverse` skip unnamed
 routes in the name chain, so `myapp:product` reverses to
 `/site/store/catalog/products/42/` with all of its URL segments.
 
-`Route.Use` applies middleware to the route and its descendants. Use
+`Route.Use` applies middleware to the route and to children added afterward.
+Existing children keep the middleware they inherited when registered. Use
 `Mux.Use` for middleware shared by all matched routes, `Route.Preprocess` to
 run route middleware before mux middleware, or `Route.RunsMiddleware(false)`
 to skip middleware for a route. See the [namespace examples](namespace_test.go)
