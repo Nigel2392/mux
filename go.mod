@@ -1,4 +1,4 @@
-module github.com/Nigel2392/mux
+module github.com/Nigel2392/mux/v2
 
 go 1.27.3
 
